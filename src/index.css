@@ -8,51 +8,58 @@ All colors MUST be HSL.
 
 @layer base {
   :root {
-    /* Playful todo app color scheme */
-    --background: 280 100% 99%;
-    --foreground: 280 15% 15%;
+    /* Beautiful lilac & lavender color scheme */
+    --background: 320 100% 98%;
+    --foreground: 270 15% 15%;
 
     --card: 0 0% 100%;
-    --card-foreground: 280 15% 15%;
+    --card-foreground: 270 15% 15%;
 
     --popover: 0 0% 100%;
-    --popover-foreground: 280 15% 15%;
+    --popover-foreground: 270 15% 15%;
 
-    --primary: 280 85% 60%;
+    --primary: 280 70% 65%;
     --primary-foreground: 0 0% 100%;
-    --primary-glow: 280 70% 75%;
+    --primary-glow: 290 65% 80%;
 
-    --secondary: 45 95% 88%;
-    --secondary-foreground: 280 15% 15%;
+    --secondary: 270 40% 92%;
+    --secondary-foreground: 270 15% 15%;
 
-    --muted: 280 30% 96%;
-    --muted-foreground: 280 20% 45%;
+    --muted: 280 25% 96%;
+    --muted-foreground: 270 20% 50%;
 
-    --accent: 165 85% 70%;
-    --accent-foreground: 280 15% 15%;
+    --accent: 260 60% 75%;
+    --accent-foreground: 270 15% 15%;
 
-    --destructive: 0 85% 65%;
+    --destructive: 0 75% 65%;
     --destructive-foreground: 0 0% 100%;
 
-    --success: 140 70% 55%;
+    --success: 150 65% 55%;
     --success-foreground: 0 0% 100%;
 
-    --warning: 35 95% 60%;
-    --warning-foreground: 280 15% 15%;
+    --warning: 45 85% 60%;
+    --warning-foreground: 270 15% 15%;
 
-    --border: 280 30% 90%;
-    --input: 280 30% 95%;
-    --ring: 280 85% 60%;
+    --info: 220 70% 60%;
+    --info-foreground: 0 0% 100%;
 
-    /* Custom gradients for playful design */
-    --gradient-primary: linear-gradient(135deg, hsl(var(--primary)), hsl(var(--primary-glow)));
-    --gradient-success: linear-gradient(135deg, hsl(var(--success)), hsl(140 60% 70%));
-    --gradient-warning: linear-gradient(135deg, hsl(var(--warning)), hsl(45 90% 75%));
-    --gradient-accent: linear-gradient(135deg, hsl(var(--accent)), hsl(180 70% 80%));
+    --border: 280 25% 92%;
+    --input: 280 25% 96%;
+    --ring: 280 70% 65%;
+
+    /* Beautiful gradients with lilac & lavender */
+    --gradient-primary: linear-gradient(135deg, hsl(280 70% 65%), hsl(290 65% 80%));
+    --gradient-secondary: linear-gradient(135deg, hsl(270 40% 92%), hsl(280 25% 96%));
+    --gradient-success: linear-gradient(135deg, hsl(150 65% 55%), hsl(160 60% 70%));
+    --gradient-warning: linear-gradient(135deg, hsl(45 85% 60%), hsl(55 80% 75%));
+    --gradient-accent: linear-gradient(135deg, hsl(260 60% 75%), hsl(270 55% 85%));
+    --gradient-hero: linear-gradient(135deg, hsl(280 70% 65%), hsl(290 65% 80%), hsl(300 60% 85%));
+    --gradient-card: linear-gradient(145deg, hsl(0 0% 100%), hsl(280 25% 98%));
     
-    /* Shadows */
-    --shadow-playful: 0 8px 32px -8px hsl(var(--primary) / 0.3);
-    --shadow-soft: 0 4px 16px -4px hsl(280 30% 20% / 0.1);
+    /* Elegant shadows */
+    --shadow-primary: 0 10px 40px -10px hsl(var(--primary) / 0.3);
+    --shadow-soft: 0 4px 20px -4px hsl(280 30% 20% / 0.08);
+    --shadow-glow: 0 0 30px hsl(var(--primary) / 0.15);
     
     /* Animations */
     --bounce-duration: 0.6s;
@@ -78,50 +85,57 @@ All colors MUST be HSL.
   }
 
   .dark {
-    --background: 280 15% 8%;
-    --foreground: 280 20% 95%;
+    --background: 270 20% 8%;
+    --foreground: 280 25% 95%;
 
-    --card: 280 15% 12%;
-    --card-foreground: 280 20% 95%;
+    --card: 270 20% 12%;
+    --card-foreground: 280 25% 95%;
 
-    --popover: 280 15% 12%;
-    --popover-foreground: 280 20% 95%;
+    --popover: 270 20% 12%;
+    --popover-foreground: 280 25% 95%;
 
-    --primary: 280 75% 65%;
-    --primary-foreground: 280 15% 8%;
-    --primary-glow: 280 60% 75%;
+    --primary: 280 65% 70%;
+    --primary-foreground: 270 20% 8%;
+    --primary-glow: 290 60% 80%;
 
-    --secondary: 45 80% 20%;
-    --secondary-foreground: 280 20% 95%;
+    --secondary: 270 25% 18%;
+    --secondary-foreground: 280 25% 95%;
 
-    --muted: 280 15% 16%;
-    --muted-foreground: 280 20% 65%;
+    --muted: 270 20% 16%;
+    --muted-foreground: 280 25% 65%;
 
-    --accent: 165 75% 55%;
-    --accent-foreground: 280 15% 8%;
+    --accent: 260 55% 65%;
+    --accent-foreground: 270 20% 8%;
 
-    --destructive: 0 75% 55%;
-    --destructive-foreground: 280 20% 95%;
+    --destructive: 0 70% 60%;
+    --destructive-foreground: 280 25% 95%;
 
-    --success: 140 60% 50%;
-    --success-foreground: 280 20% 95%;
+    --success: 150 60% 55%;
+    --success-foreground: 280 25% 95%;
 
-    --warning: 35 85% 55%;
-    --warning-foreground: 280 15% 8%;
+    --warning: 45 80% 60%;
+    --warning-foreground: 270 20% 8%;
 
-    --border: 280 15% 20%;
-    --input: 280 15% 16%;
-    --ring: 280 75% 65%;
+    --info: 220 65% 65%;
+    --info-foreground: 280 25% 95%;
 
-    /* Dark mode gradients */
-    --gradient-primary: linear-gradient(135deg, hsl(var(--primary)), hsl(var(--primary-glow)));
-    --gradient-success: linear-gradient(135deg, hsl(var(--success)), hsl(140 50% 60%));
-    --gradient-warning: linear-gradient(135deg, hsl(var(--warning)), hsl(45 75% 65%));
-    --gradient-accent: linear-gradient(135deg, hsl(var(--accent)), hsl(180 65% 65%));
+    --border: 270 20% 20%;
+    --input: 270 20% 16%;
+    --ring: 280 65% 70%;
+
+    /* Dark mode gradients with lilac & lavender */
+    --gradient-primary: linear-gradient(135deg, hsl(280 65% 70%), hsl(290 60% 80%));
+    --gradient-secondary: linear-gradient(135deg, hsl(270 25% 18%), hsl(280 20% 22%));
+    --gradient-success: linear-gradient(135deg, hsl(150 60% 55%), hsl(160 55% 65%));
+    --gradient-warning: linear-gradient(135deg, hsl(45 80% 60%), hsl(55 75% 70%));
+    --gradient-accent: linear-gradient(135deg, hsl(260 55% 65%), hsl(270 50% 75%));
+    --gradient-hero: linear-gradient(135deg, hsl(280 65% 70%), hsl(290 60% 80%), hsl(300 55% 85%));
+    --gradient-card: linear-gradient(145deg, hsl(270 20% 12%), hsl(280 15% 15%));
     
     /* Dark shadows */
-    --shadow-playful: 0 8px 32px -8px hsl(var(--primary) / 0.4);
-    --shadow-soft: 0 4px 16px -4px hsl(0 0% 0% / 0.3);
+    --shadow-primary: 0 10px 40px -10px hsl(var(--primary) / 0.4);
+    --shadow-soft: 0 4px 20px -4px hsl(0 0% 0% / 0.3);
+    --shadow-glow: 0 0 30px hsl(var(--primary) / 0.2);
     --sidebar-background: 240 5.9% 10%;
     --sidebar-foreground: 240 4.8% 95.9%;
     --sidebar-primary: 224.3 76.3% 48%;

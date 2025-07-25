@@ -103,11 +103,11 @@ export default function Profile() {
       />
 
       {/* Profile Card */}
-      <Card className="mb-6">
+      <Card className="mb-6 bg-gradient-card border-primary/20 shadow-soft">
         <CardContent className="pt-6">
           <div className="flex flex-col items-center space-y-4">
             {/* Avatar */}
-            <Avatar className="h-24 w-24 bg-gradient-primary text-primary-foreground text-2xl">
+            <Avatar className="h-24 w-24 bg-gradient-hero text-primary-foreground text-2xl shadow-glow border-4 border-primary/20">
               <AvatarFallback>
                 {user ? getInitials(user.name) : '?'}
               </AvatarFallback>
@@ -175,7 +175,7 @@ export default function Profile() {
           
           <div className="grid grid-cols-2 gap-4">
             {/* Todo Stats */}
-            <Card className="bg-gradient-to-br from-primary/5 to-primary-glow/5 border-primary/20">
+            <Card className="bg-gradient-primary/5 border-primary/20 shadow-soft">
               <CardHeader className="pb-2">
                 <CardTitle className="text-sm flex items-center gap-2">
                   <CheckSquare className="h-4 w-4 text-primary" />
@@ -193,7 +193,7 @@ export default function Profile() {
             </Card>
 
             {/* Schedule Stats */}
-            <Card className="bg-gradient-to-br from-accent/5 to-accent/10 border-accent/20">
+            <Card className="bg-gradient-accent/5 border-accent/20 shadow-soft">
               <CardHeader className="pb-2">
                 <CardTitle className="text-sm flex items-center gap-2">
                   <Calendar className="h-4 w-4 text-accent" />
@@ -212,7 +212,7 @@ export default function Profile() {
           </div>
 
           {/* Focus Time Card */}
-          <Card className="bg-gradient-to-br from-success/5 to-success/10 border-success/20">
+          <Card className="bg-gradient-success/5 border-success/20 shadow-soft">
             <CardHeader>
               <CardTitle className="text-lg flex items-center gap-2">
                 <Clock className="h-5 w-5 text-success" />
@@ -233,7 +233,7 @@ export default function Profile() {
           </Card>
 
           {/* Achievement Card */}
-          <Card className="bg-gradient-to-br from-warning/5 to-warning/10 border-warning/20">
+          <Card className="bg-gradient-warning/5 border-warning/20 shadow-soft">
             <CardHeader>
               <CardTitle className="text-lg flex items-center gap-2">
                 🏆 Achievements

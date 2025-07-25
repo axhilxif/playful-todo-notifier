@@ -5,6 +5,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { PageHeader } from '@/components/ui/page-header';
 import { TimerDisplay } from '@/components/timer/TimerDisplay';
 import { TimerStats } from '@/components/timer/TimerStats';
+import { InsightsCard } from '@/components/insights/InsightsCard';
 import { TimerSession } from '@/types';
 import { getTimerSession, setTimerSession } from '@/lib/storage';
 import { playHaptic } from '@/lib/notifications';
@@ -118,8 +119,18 @@ export default function Timer() {
         isActive: false,
       };
       
-      // Save completed session (you could store these in a sessions history)
-      console.log('Session completed:', finalSession);
+      // Save completed session to localStorage for statistics
+      const focusSessions = JSON.parse(localStorage.getItem('focusSessions') || '[]');
+      focusSessions.push({
+        id: finalSession.id,
+        duration: finalSession.duration,
+        date: finalSession.endTime.toDateString(),
+        endTime: finalSession.endTime,
+      });
+      localStorage.setItem('focusSessions', JSON.stringify(focusSessions));
+      
+      // Dispatch custom event to update stats
+      window.dispatchEvent(new CustomEvent('focusSessionCompleted'));
       
       setSession(null);
       setTimerSession(null);
@@ -171,7 +182,7 @@ export default function Timer() {
       />
 
       {/* Main Timer Card */}
-      <Card className="mb-6 bg-gradient-to-br from-primary/5 to-primary-glow/5 border-primary/20">
+      <Card className="mb-6 bg-gradient-hero/10 border-primary/20 shadow-glow">
         <CardHeader className="text-center">
           <CardTitle className="text-2xl font-bold text-primary">
             {session ? (isRunning ? '🎯 Focusing...' : '⏸️ Paused') : '⏰ Ready to Focus'}
@@ -184,11 +195,11 @@ export default function Timer() {
           {/* Control Buttons */}
           <div className="flex justify-center gap-4">
             {!session ? (
-              <Button
-                onClick={handleStart}
-                size="lg"
-                className="bg-gradient-primary hover:bg-gradient-primary/90 shadow-playful px-8"
-              >
+                <Button
+                  onClick={handleStart}
+                  size="lg"
+                  className="bg-gradient-primary hover:bg-gradient-primary/90 shadow-primary px-8 animate-pulse-glow"
+                >
                 <Play className="h-5 w-5 mr-2" />
                 Start Timer
               </Button>
@@ -208,7 +219,7 @@ export default function Timer() {
                   <Button
                     onClick={handleStart}
                     size="lg"
-                    className="bg-gradient-primary hover:bg-gradient-primary/90 px-6"
+                    className="bg-gradient-primary hover:bg-gradient-primary/90 px-6 shadow-primary"
                   >
                     <Play className="h-5 w-5 mr-2" />
                     Resume
@@ -257,6 +268,11 @@ export default function Timer() {
 
       {/* Stats Card */}
       <TimerStats />
+      
+      {/* Insights Card */}
+      <div className="mt-6">
+        <InsightsCard />
+      </div>
     </div>
   );
 }

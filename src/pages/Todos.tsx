@@ -117,10 +117,10 @@ export default function Todos() {
         subtitle={`${completedCount}/${totalCount} completed`}
         icon={<Plus className="h-6 w-6" />}
         action={
-          <Button 
-            onClick={() => setShowForm(true)}
-            className="bg-gradient-primary hover:bg-gradient-primary/90 shadow-playful"
-          >
+            <Button 
+              onClick={() => setShowForm(true)}
+              className="bg-gradient-primary hover:bg-gradient-primary/90 shadow-primary animate-pulse-glow"
+            >
             <Plus className="h-4 w-4 mr-2" />
             Add Todo
           </Button>

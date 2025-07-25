@@ -31,7 +31,7 @@ export function TodoCard({ todo, onToggle, onEdit, onDelete, className, style }:
   return (
     <Card 
       className={cn(
-        "transition-all duration-300 hover:shadow-playful hover:scale-[1.02] cursor-pointer",
+        "transition-all duration-300 hover:shadow-primary hover:scale-[1.02] cursor-pointer bg-gradient-card border-primary/10",
         todo.completed && "opacity-75 hover:opacity-100",
         className
       )}
