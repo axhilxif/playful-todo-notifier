@@ -1,8 +1,8 @@
 workflows:
   vite_capacitor_build:
-    name: MyTodo
+    name: MyFocus
     environment:
-      node: 18
+      node: 20
       vars:
         PACKAGE_NAME: "app.accs.tofo"
     scripts:
