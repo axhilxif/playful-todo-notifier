@@ -1,0 +1,15 @@
+workflows:
+  vite_capacitor_build:
+    name: MyTodo
+    environment:
+      node: 18
+      vars:
+        PACKAGE_NAME: "app.accs.tofo"
+    scripts:
+      - npm install
+      - npm run build
+      - npx cap sync android
+      - cd android
+      - ./gradlew assembleDebug
+    artifacts:
+      - android/app/build/outputs/**/*.apk
