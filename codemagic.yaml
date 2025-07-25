@@ -6,10 +6,19 @@ workflows:
       vars:
         PACKAGE_NAME: "app.accs.tofo"
     scripts:
+      - echo "📦 Installing dependencies..."
       - npm install
+
+      - echo "🔧 Building the Vite app..."
       - npm run build
-      - npx cap add android
+
+      - echo "➕ Adding Android platform (if not already added)..."
+      - if [ ! -d "android" ]; then npx cap add android; fi
+
+      - echo "🔄 Syncing Capacitor with Android..."
       - npx cap sync android
+
+      - echo "🏗️ Building APK..."
       - cd android
       - ./gradlew assembleDebug
     artifacts:
