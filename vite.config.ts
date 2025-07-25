@@ -1,5 +1,5 @@
 import { defineConfig } from "vite";
-import react from "@vitejs/plugin-react-swc";
+import react from "@vitejs/plugin-react"; // ✅ Changed from swc to regular
 import path from "path";
 import { componentTagger } from "lovable-tagger";
 
@@ -10,7 +10,7 @@ export default defineConfig(({ mode }) => ({
     port: 8080,
   },
   plugins: [
-    react(),
+    react(), // ✅ ESBuild-based React plugin, works in Termux
     mode === 'development' &&
     componentTagger(),
   ].filter(Boolean),
