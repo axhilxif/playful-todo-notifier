@@ -1,5 +1,5 @@
 import { defineConfig } from "vite";
-import react from "@vitejs/plugin-react-swc"; // ✅ Changed from swc to regular
+import react from "@vitejs/plugin-react"; // ✅ Changed from swc to regular
 import path from "path";
 import { componentTagger } from "lovable-tagger";
 
