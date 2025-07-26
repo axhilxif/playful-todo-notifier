@@ -4,7 +4,6 @@ workflows:
     environment:
       node: 20
       java: 21
-      android: 33
       vars:
         PACKAGE_NAME: "app.accs.tofo"
 
