@@ -20,17 +20,20 @@ workflows:
         if [ ! -d "android" ]; then npx cap add android; fi
 
       - |
-        echo "🔄 Syncing Capacitor..."
+        echo "🔄 Syncing Capacitor with Android..."
         npx cap sync android
 
       - |
-        echo "📥 Checking/Installing Gradle manually (if missing)..."
+        echo "📥 Checking/Installing Gradle wrapper (if missing)..."
         if [ ! -f "./android/gradlew" ]; then
-          echo "⚠️ Gradle wrapper missing. Initializing..."
           cd android
           gradle wrapper
           cd ..
         fi
+
+      - |
+        echo "✅ Giving executable permission to gradlew..."
+        chmod +x android/gradlew
 
       - |
         echo "🏗️ Building APK..."
