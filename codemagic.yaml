@@ -1,32 +1,40 @@
 workflows:
   vite_capacitor_build:
-    name: MyFocus Android Build
+    name: MyFocus
     environment:
       node: 20
+      java: 21
+      vars:
+        PACKAGE_NAME: "app.accs.tofo"
     scripts:
-      - echo "📦 Installing dependencies…"
-      - npm install
-
-      - echo "🔧 Building Vite frontend…"
-      - npm run build
-
-      - echo "➕ Adding Android platform if missing…"
-      - if [ ! -d "./android" ]; then npx cap add android; fi
-
-      - echo "🔄 Syncing Capacitor platform…"
-      - npx cap sync android
-
-      - echo "📥 Setting up Gradle"
-      - cd android
       - |
-        GRADLE_VERSION=8.7
-        wget https://services.gradle.org/distributions/gradle-${GRADLE_VERSION}-bin.zip
-        unzip gradle-${GRADLE_VERSION}-bin.zip -d gradle
-        export PATH=$PWD/gradle/gradle-${GRADLE_VERSION}/bin:$PATH
-        gradle -v
+        echo "📦 Installing NPM dependencies..."
+        npm install
 
-      - echo "🏗 Assembling Debug APK"
-      - gradle assembleDebug
+      - |
+        echo "🔧 Building the Vite frontend..."
+        npm run build
+
+      - |
+        echo "➕ Adding Android platform if not present..."
+        if [ ! -d "android" ]; then npx cap add android; fi
+
+      - |
+        echo "🔄 Syncing Capacitor..."
+        npx cap sync android
+
+      - |
+        echo "📥 Checking/Installing Gradle manually (if missing)..."
+        if [ ! -f "./android/gradlew" ]; then
+          echo "⚠️ Gradle wrapper missing. Initializing..."
+          cd android
+          gradle wrapper
+          cd ..
+        fi
+
+      - |
+        echo "🏗️ Building APK..."
+        cd android && ./gradlew assembleDebug
 
     artifacts:
       - android/app/build/outputs/**/*.apk
