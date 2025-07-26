@@ -18,8 +18,17 @@ workflows:
       - echo "🔄 Syncing Capacitor with Android..."
       - npx cap sync android
 
+      - echo "📥 Installing Gradle manually..."
+      - |
+        GRADLE_VERSION=8.7
+        wget https://services.gradle.org/distributions/gradle-${GRADLE_VERSION}-bin.zip
+        unzip gradle-${GRADLE_VERSION}-bin.zip -d gradle
+        export GRADLE_HOME=$PWD/gradle/gradle-${GRADLE_VERSION}
+        export PATH=$GRADLE_HOME/bin:$PATH
+        gradle -v
+
       - echo "🏗️ Building APK..."
       - cd android
-      - ./gradlew assembleDebug
+      - gradle assembleDebug
     artifacts:
       - android/app/build/outputs/**/*.apk
