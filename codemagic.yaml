@@ -1,47 +1,90 @@
 workflows:
-  vite_capacitor_build:
-    name: MyFocus
+  full_android_build:
+    name: "AI-Driven Android APK Builder"
     environment:
       node: 20
       java: 21
+      android: 33
       vars:
         PACKAGE_NAME: "app.accs.tofo"
+
     scripts:
       - |
-        echo "📦 Installing NPM dependencies..."
-        npm install
+        echo "🤖 Verifying Node, Java, Android SDK, and Gradle CLI..."
+        node -v || (echo "❌ Node not available!" && exit 1)
+        npm -v || (echo "❌ npm not installed!" && exit 1)
+        java -version || (echo "❌ Java missing!" && exit 1)
+        sdkmanager --list || echo "⚠️ SDK manager not available (might not be needed)"
+        gradle -v || echo "🔧 Gradle CLI not installed globally. Wrapper will be used."
 
       - |
-        echo "🔧 Building Vite app..."
-        npm run build
+        echo "📦 Installing npm dependencies..."
+        npm install || npm ci || (echo "❌ npm install failed. Retrying with clean cache..." && rm -rf node_modules package-lock.json && npm install)
 
       - |
-        echo "➕ Adding Android platform if not already added..."
-        if [ ! -d "android" ]; then npx cap add android; fi
+        echo "🔧 Building frontend with Vite..."
+        npm run build || (echo "❌ Vite build failed. Rechecking scripts..." && npm run build)
 
       - |
-        echo "🔄 Syncing Capacitor with Android..."
-        npx cap sync android
+        echo "📁 Verifying Android platform..."
+        if [ ! -d "android" ] || [ ! -f "capacitor.config.ts" ] && [ ! -f "capacitor.config.json" ]; then
+          echo "🛠️ Adding missing Android platform..."
+          npx cap add android || (echo "❌ Capacitor add android failed" && exit 1)
+        fi
 
       - |
-        echo "📥 Ensuring Gradle wrapper exists..."
+        echo "🔄 Syncing Capacitor..."
+        npx cap sync android || (echo "❌ cap sync failed. Trying force sync..." && npx cap update android && npx cap sync)
+
+      - |
+        echo "🧼 Fixing JVM and environment variables..."
+        unset DEFAULT_JVM_OPTS
+        export JAVA_TOOL_OPTIONS=""
+        export GRADLE_OPTS="-Dorg.gradle.jvmargs=-Xmx4096m"
+
+      - |
+        echo "🔍 Validating android/gradle wrapper..."
         if [ ! -f "android/gradlew" ]; then
+          echo "⚠️ gradlew missing — generating Gradle wrapper..."
           cd android
-          gradle wrapper
+          gradle wrapper --gradle-version 8.7 || (echo "❌ gradle wrapper creation failed!" && exit 1)
           cd ..
         fi
 
       - |
-        echo "✅ Fixing permissions for gradlew..."
+        echo "🔐 Fixing gradlew permissions and line endings..."
         chmod +x android/gradlew
+        dos2unix android/gradlew || sed -i 's/\r$//' android/gradlew # cross-platform fix
 
       - |
-        echo "🛠️ Cleaning bad JVM options if set..."
-        unset DEFAULT_JVM_OPTS
+        echo "🧾 Ensuring gradle.properties is sane..."
+        if [ ! -f "android/gradle.properties" ]; then
+          echo "Creating gradle.properties..."
+          echo "org.gradle.jvmargs=-Xmx4g" > android/gradle.properties
+        fi
 
       - |
-        echo "🏗️ Building APK..."
-        cd android && ./gradlew assembleDebug
+        echo "🧽 Cleaning previous builds..."
+        cd android
+        ./gradlew clean --warning-mode=all || (echo "❌ Clean failed. Forcing again..." && ./gradlew clean)
+
+      - |
+        echo "📦 Building APK (debug mode)..."
+        ./gradlew assembleDebug --stacktrace || (
+          echo "⚠️ Initial build failed — retrying with --no-daemon and debug logs..."
+          ./gradlew assembleDebug --no-daemon --info --stacktrace || (
+            echo "🛠 Final fallback attempt with Gradle refresh..."
+            ./gradlew build --refresh-dependencies || exit 1
+          )
+        )
 
     artifacts:
       - android/app/build/outputs/**/*.apk
+
+    publishing:
+      email:
+        recipients:
+          - your@email.com
+        notify:
+          success: true
+          failure: true
