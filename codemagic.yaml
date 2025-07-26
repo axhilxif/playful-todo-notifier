@@ -12,11 +12,11 @@ workflows:
         npm install
 
       - |
-        echo "🔧 Building the Vite frontend..."
+        echo "🔧 Building Vite app..."
         npm run build
 
       - |
-        echo "➕ Adding Android platform if not present..."
+        echo "➕ Adding Android platform if not already added..."
         if [ ! -d "android" ]; then npx cap add android; fi
 
       - |
@@ -24,16 +24,20 @@ workflows:
         npx cap sync android
 
       - |
-        echo "📥 Checking/Installing Gradle wrapper (if missing)..."
-        if [ ! -f "./android/gradlew" ]; then
+        echo "📥 Ensuring Gradle wrapper exists..."
+        if [ ! -f "android/gradlew" ]; then
           cd android
           gradle wrapper
           cd ..
         fi
 
       - |
-        echo "✅ Giving executable permission to gradlew..."
+        echo "✅ Fixing permissions for gradlew..."
         chmod +x android/gradlew
+
+      - |
+        echo "🛠️ Cleaning bad JVM options if set..."
+        unset DEFAULT_JVM_OPTS
 
       - |
         echo "🏗️ Building APK..."
