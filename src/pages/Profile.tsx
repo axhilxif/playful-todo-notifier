@@ -1,256 +1,329 @@
+
 import { useState, useEffect } from 'react';
-import { User as UserIcon, Edit2, Save, Calendar, Clock, CheckSquare } from 'lucide-react';
+import { User as UserIcon, Settings, Trophy, Star, Calendar, Timer, Target, Sparkles, Camera, Edit, Save, X } from 'lucide-react';
 import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Avatar, AvatarImage, AvatarFallback } from '@/components/ui/avatar';
+import { Badge } from '@/components/ui/badge';
+import { Progress } from '@/components/ui/progress';
+import { Input } from '@/components/ui/input';
+import { Textarea } from '@/components/ui/textarea';
 import { PageHeader } from '@/components/ui/page-header';
-import { Avatar, AvatarFallback } from '@/components/ui/avatar';
-import { User } from '@/types';
-import { getUser, setUser, getTodos, getTimeSlots } from '@/lib/storage';
-import { playHaptic } from '@/lib/notifications';
+import { PlanBoard } from '@/components/plan-board/PlanBoard';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { useToast } from '@/hooks/use-toast';
+import { playHaptic } from '@/lib/notifications';
+
+interface UserProfile {
+  name: string;
+  bio: string;
+  avatar: string;
+  joinDate: string;
+  level: number;
+  xp: number;
+  streak: number;
+  achievements: string[];
+  favoriteEmoji: string;
+  theme: string;
+}
+
+const ACHIEVEMENT_BADGES = [
+  { id: 'first-todo', name: 'First Steps', emoji: '👶', description: 'Created your first todo' },
+  { id: 'week-streak', name: 'Consistent', emoji: '🔥', description: '7 day streak' },
+  { id: 'focus-master', name: 'Focus Master', emoji: '🎯', description: '10 hours of focus time' },
+  { id: 'planner', name: 'Planner', emoji: '📋', description: 'Created 10 schedule items' },
+  { id: 'early-bird', name: 'Early Bird', emoji: '🌅', description: 'Used timer before 8 AM' },
+  { id: 'night-owl', name: 'Night Owl', emoji: '🦉', description: 'Used timer after 10 PM' },
+  { id: 'productivity-guru', name: 'Productivity Guru', emoji: '⚡', description: 'Completed 50 todos' },
+  { id: 'zen-master', name: 'Zen Master', emoji: '🧘', description: '100 break reminders taken' },
+];
+
+const THEME_OPTIONS = [
+  { id: 'default', name: 'Default', gradient: 'bg-gradient-to-r from-primary to-accent' },
+  { id: 'ocean', name: 'Ocean', gradient: 'bg-gradient-to-r from-blue-500 to-cyan-400' },
+  { id: 'sunset', name: 'Sunset', gradient: 'bg-gradient-to-r from-orange-500 to-pink-500' },
+  { id: 'forest', name: 'Forest', gradient: 'bg-gradient-to-r from-green-500 to-teal-400' },
+  { id: 'galaxy', name: 'Galaxy', gradient: 'bg-gradient-to-r from-purple-500 to-indigo-500' },
+];
 
 export default function Profile() {
-  const [user, setUserState] = useState<User | null>(null);
+  const [profile, setProfile] = useState<UserProfile>({
+    name: 'Productivity Hero',
+    bio: 'On a journey to make every day count! ✨',
+    avatar: '',
+    joinDate: new Date().toISOString(),
+    level: 1,
+    xp: 250,
+    streak: 5,
+    achievements: ['first-todo', 'week-streak'],
+    favoriteEmoji: '🚀',
+    theme: 'default',
+  });
+  
   const [isEditing, setIsEditing] = useState(false);
-  const [name, setName] = useState('');
+  const [editData, setEditData] = useState(profile);
+  const [stats, setStats] = useState({
+    totalTodos: 0,
+    completedTodos: 0,
+    totalFocusTime: 0,
+    planBoardItems: 0,
+  });
+  
   const { toast } = useToast();
 
   useEffect(() => {
-    const storedUser = getUser();
-    if (storedUser) {
-      setUserState(storedUser);
-      setName(storedUser.name);
-    } else {
-      // First time user - show editing mode
-      setIsEditing(true);
+    // Load profile from localStorage
+    const savedProfile = localStorage.getItem('userProfile');
+    if (savedProfile) {
+      const parsed = JSON.parse(savedProfile);
+      setProfile(parsed);
+      setEditData(parsed);
     }
+
+    // Calculate stats
+    const todos = JSON.parse(localStorage.getItem('todo-app-todos') || '[]');
+    const focusSessions = JSON.parse(localStorage.getItem('focusSessions') || '[]');
+    const planBoard = JSON.parse(localStorage.getItem('planBoard') || '[]');
+
+    const totalFocusSeconds = focusSessions.reduce((total: number, session: any) => total + session.duration, 0);
+
+    setStats({
+      totalTodos: todos.length,
+      completedTodos: todos.filter((todo: any) => todo.completed).length,
+      totalFocusTime: Math.round(totalFocusSeconds / 3600 * 10) / 10, // hours
+      planBoardItems: planBoard.length,
+    });
   }, []);
 
-  const handleSave = () => {
-    if (!name.trim()) {
-      toast({
-        title: "Name required",
-        description: "Please enter your name to continue.",
-        variant: "destructive",
-      });
-      return;
-    }
-
-    const userData: User = user 
-      ? { ...user, name: name.trim() }
-      : { id: Date.now().toString(), name: name.trim(), createdAt: new Date() };
-
-    setUser(userData);
-    setUserState(userData);
+  const saveProfile = () => {
+    localStorage.setItem('userProfile', JSON.stringify(editData));
+    setProfile(editData);
     setIsEditing(false);
     playHaptic();
-
+    
     toast({
-      title: user ? "Profile updated! ✨" : "Welcome! 🎉",
-      description: user 
-        ? "Your profile has been updated successfully."
-        : `Welcome to your todo app, ${userData.name}!`,
+      title: "Profile updated! ✨",
+      description: "Your changes have been saved successfully.",
     });
   };
 
-  const getInitials = (name: string) => {
-    return name
-      .split(' ')
-      .map(word => word[0])
-      .join('')
-      .toUpperCase()
-      .slice(0, 2);
+  const cancelEdit = () => {
+    setEditData(profile);
+    setIsEditing(false);
   };
 
-  const getStats = () => {
-    const todos = getTodos();
-    const timeSlots = getTimeSlots();
-    
-    const completedTodos = todos.filter(todo => todo.completed).length;
-    const totalTodos = todos.length;
-    const completionRate = totalTodos > 0 ? Math.round((completedTodos / totalTodos) * 100) : 0;
+  const calculateLevel = (xp: number) => Math.floor(xp / 100) + 1;
+  const getXpForNextLevel = (level: number) => level * 100;
+  const getXpProgress = () => (profile.xp % 100);
 
-    return {
-      totalTodos,
-      completedTodos,
-      completionRate,
-      timeSlots: timeSlots.length,
-    };
-  };
-
-  const stats = getStats();
+  const unlockedAchievements = ACHIEVEMENT_BADGES.filter(badge => 
+    profile.achievements.includes(badge.id)
+  );
 
   return (
     <div className="pb-20 px-4 pt-6">
       <PageHeader
         title="My Profile"
-        subtitle="Manage your account and view your progress"
+        subtitle="Track your progress and customize your experience"
         icon={<UserIcon className="h-6 w-6" />}
         action={
-          !isEditing && user && (
-            <Button 
-              onClick={() => setIsEditing(true)}
-              variant="outline"
-              size="sm"
-            >
-              <Edit2 className="h-4 w-4 mr-2" />
-              Edit
-            </Button>
-          )
+          <Button
+            onClick={isEditing ? saveProfile : () => setIsEditing(true)}
+            className="bg-gradient-primary hover:bg-gradient-primary/90"
+            size="sm"
+          >
+            {isEditing ? <Save className="h-4 w-4 mr-2" /> : <Edit className="h-4 w-4 mr-2" />}
+            {isEditing ? 'Save' : 'Edit'}
+          </Button>
         }
       />
 
-      {/* Profile Card */}
-      <Card className="mb-6 bg-gradient-card border-primary/20 shadow-soft">
-        <CardContent className="pt-6">
-          <div className="flex flex-col items-center space-y-4">
-            {/* Avatar */}
-            <Avatar className="h-24 w-24 bg-gradient-hero text-primary-foreground text-2xl shadow-glow border-4 border-primary/20">
-              <AvatarFallback>
-                {user ? getInitials(user.name) : '?'}
-              </AvatarFallback>
-            </Avatar>
+      <Tabs defaultValue="profile" className="space-y-6">
+        <TabsList className="grid w-full grid-cols-2">
+          <TabsTrigger value="profile">Profile & Stats</TabsTrigger>
+          <TabsTrigger value="planboard">My Plan Board</TabsTrigger>
+        </TabsList>
 
-            {/* Name */}
-            {isEditing ? (
-              <div className="w-full max-w-sm space-y-4">
-                <div className="space-y-2">
-                  <Label htmlFor="name" className="text-sm font-medium">
-                    Your Name
-                  </Label>
-                  <Input
-                    id="name"
-                    placeholder="Enter your name"
-                    value={name}
-                    onChange={(e) => setName(e.target.value)}
-                    className="text-center transition-all duration-200 focus:shadow-soft"
-                    autoFocus
-                  />
-                </div>
-                <div className="flex gap-3">
-                  {user && (
+        <TabsContent value="profile" className="space-y-6">
+          {/* Profile Header */}
+          <Card className="bg-gradient-hero/10 border-primary/20 shadow-glow">
+            <CardContent className="p-6">
+              <div className="flex items-center gap-4">
+                <div className="relative">
+                  <Avatar className="h-20 w-20 border-4 border-primary/20">
+                    <AvatarImage src={profile.avatar} />
+                    <AvatarFallback className="text-2xl bg-gradient-primary text-primary-foreground">
+                      {profile.favoriteEmoji}
+                    </AvatarFallback>
+                  </Avatar>
+                  {isEditing && (
                     <Button
-                      onClick={() => {
-                        setIsEditing(false);
-                        setName(user.name);
-                      }}
-                      variant="outline"
-                      className="flex-1"
+                      size="sm"
+                      className="absolute -bottom-2 -right-2 h-8 w-8 rounded-full p-0"
                     >
-                      Cancel
+                      <Camera className="h-4 w-4" />
                     </Button>
                   )}
-                  <Button
-                    onClick={handleSave}
-                    className="flex-1 bg-gradient-primary hover:bg-gradient-primary/90"
-                    disabled={!name.trim()}
-                  >
-                    <Save className="h-4 w-4 mr-2" />
-                    Save
-                  </Button>
+                </div>
+                
+                <div className="flex-1">
+                  {isEditing ? (
+                    <div className="space-y-2">
+                      <Input
+                        value={editData.name}
+                        onChange={(e) => setEditData({ ...editData, name: e.target.value })}
+                        className="text-xl font-bold"
+                        placeholder="Your name"
+                      />
+                      <Textarea
+                        value={editData.bio}
+                        onChange={(e) => setEditData({ ...editData, bio: e.target.value })}
+                        placeholder="Tell us about yourself..."
+                        rows={2}
+                      />
+                      <div className="flex gap-2">
+                        <Button size="sm" onClick={saveProfile} className="bg-gradient-success">
+                          <Save className="h-4 w-4 mr-1" />
+                          Save
+                        </Button>
+                        <Button size="sm" variant="outline" onClick={cancelEdit}>
+                          <X className="h-4 w-4 mr-1" />
+                          Cancel
+                        </Button>
+                      </div>
+                    </div>
+                  ) : (
+                    <div>
+                      <h2 className="text-2xl font-bold text-primary">{profile.name}</h2>
+                      <p className="text-muted-foreground mt-1">{profile.bio}</p>
+                      <div className="flex items-center gap-4 mt-3">
+                        <Badge variant="outline" className="bg-gradient-primary/10">
+                          <Trophy className="h-4 w-4 mr-1" />
+                          Level {profile.level}
+                        </Badge>
+                        <Badge variant="outline" className="bg-gradient-accent/10">
+                          <Star className="h-4 w-4 mr-1" />
+                          {profile.streak} day streak
+                        </Badge>
+                      </div>
+                    </div>
+                  )}
                 </div>
               </div>
-            ) : (
-              <>
-                <h2 className="text-2xl font-bold text-center">
-                  {user?.name || 'Anonymous User'}
-                </h2>
-                {user && (
-                  <p className="text-sm text-muted-foreground text-center">
-                    Member since {new Date(user.createdAt).toLocaleDateString()}
-                  </p>
-                )}
-              </>
-            )}
-          </div>
-        </CardContent>
-      </Card>
+              
+              {/* XP Progress */}
+              <div className="mt-6">
+                <div className="flex justify-between text-sm mb-2">
+                  <span>Level {profile.level}</span>
+                  <span>{getXpProgress()}/100 XP</span>
+                </div>
+                <Progress value={getXpProgress()} className="h-2" />
+              </div>
+            </CardContent>
+          </Card>
 
-      {/* Stats Cards */}
-      {user && (
-        <div className="space-y-4">
-          <h3 className="text-lg font-semibold">Your Statistics</h3>
-          
+          {/* Quick Stats */}
           <div className="grid grid-cols-2 gap-4">
-            {/* Todo Stats */}
-            <Card className="bg-gradient-primary/5 border-primary/20 shadow-soft">
-              <CardHeader className="pb-2">
-                <CardTitle className="text-sm flex items-center gap-2">
-                  <CheckSquare className="h-4 w-4 text-primary" />
-                  Todos
-                </CardTitle>
-              </CardHeader>
-              <CardContent>
-                <div className="text-2xl font-bold text-primary mb-1">
-                  {stats.completedTodos}/{stats.totalTodos}
-                </div>
-                <div className="text-xs text-muted-foreground">
-                  {stats.completionRate}% completion rate
-                </div>
+            <Card className="bg-gradient-primary/5 border-primary/20">
+              <CardContent className="p-4 text-center">
+                <div className="text-3xl font-bold text-primary">{stats.totalTodos}</div>
+                <div className="text-sm text-muted-foreground">Total Todos</div>
               </CardContent>
             </Card>
-
-            {/* Schedule Stats */}
-            <Card className="bg-gradient-accent/5 border-accent/20 shadow-soft">
-              <CardHeader className="pb-2">
-                <CardTitle className="text-sm flex items-center gap-2">
-                  <Calendar className="h-4 w-4 text-accent" />
-                  Schedule
-                </CardTitle>
-              </CardHeader>
-              <CardContent>
-                <div className="text-2xl font-bold text-accent mb-1">
-                  {stats.timeSlots}
-                </div>
-                <div className="text-xs text-muted-foreground">
-                  time slots configured
-                </div>
+            
+            <Card className="bg-gradient-success/5 border-success/20">
+              <CardContent className="p-4 text-center">
+                <div className="text-3xl font-bold text-success">{stats.completedTodos}</div>
+                <div className="text-sm text-muted-foreground">Completed</div>
+              </CardContent>
+            </Card>
+            
+            <Card className="bg-gradient-accent/5 border-accent/20">
+              <CardContent className="p-4 text-center">
+                <div className="text-3xl font-bold text-accent">{stats.totalFocusTime}h</div>
+                <div className="text-sm text-muted-foreground">Focus Time</div>
+              </CardContent>
+            </Card>
+            
+            <Card className="bg-gradient-warning/5 border-warning/20">
+              <CardContent className="p-4 text-center">
+                <div className="text-3xl font-bold text-warning">{stats.planBoardItems}</div>
+                <div className="text-sm text-muted-foreground">Plans Created</div>
               </CardContent>
             </Card>
           </div>
 
-          {/* Focus Time Card */}
-          <Card className="bg-gradient-success/5 border-success/20 shadow-soft">
+          {/* Achievements */}
+          <Card>
             <CardHeader>
-              <CardTitle className="text-lg flex items-center gap-2">
-                <Clock className="h-5 w-5 text-success" />
-                Focus Time
+              <CardTitle className="flex items-center gap-2">
+                <Trophy className="h-5 w-5 text-warning" />
+                Achievements
               </CardTitle>
             </CardHeader>
             <CardContent>
-              <div className="text-center">
-                <div className="text-3xl font-bold text-success mb-2">0h 0m</div>
-                <div className="text-sm text-muted-foreground">
-                  Total focus time this week
+              {unlockedAchievements.length === 0 ? (
+                <div className="text-center py-8">
+                  <div className="text-4xl mb-2">🏆</div>
+                  <p className="text-muted-foreground">Start using the app to unlock achievements!</p>
                 </div>
-                <p className="text-xs text-muted-foreground mt-2">
-                  Start using the timer to track your productivity! 🚀
-                </p>
-              </div>
+              ) : (
+                <div className="grid grid-cols-2 gap-3">
+                  {unlockedAchievements.map((achievement) => (
+                    <div key={achievement.id} className="flex items-center gap-3 p-3 bg-gradient-warning/5 rounded-lg border border-warning/10">
+                      <div className="text-2xl">{achievement.emoji}</div>
+                      <div>
+                        <div className="font-semibold text-sm">{achievement.name}</div>
+                        <div className="text-xs text-muted-foreground">{achievement.description}</div>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )}
             </CardContent>
           </Card>
 
-          {/* Achievement Card */}
-          <Card className="bg-gradient-warning/5 border-warning/20 shadow-soft">
+          {/* Theme Selection */}
+          <Card>
             <CardHeader>
-              <CardTitle className="text-lg flex items-center gap-2">
-                🏆 Achievements
+              <CardTitle className="flex items-center gap-2">
+                <Sparkles className="h-5 w-5 text-primary" />
+                Customize Theme
               </CardTitle>
             </CardHeader>
             <CardContent>
-              <div className="text-center space-y-2">
-                <div className="text-4xl">🎯</div>
-                <div className="text-sm font-medium">Getting Started</div>
-                <div className="text-xs text-muted-foreground">
-                  Welcome to your productivity journey!
-                </div>
+              <div className="grid grid-cols-2 gap-3">
+                {THEME_OPTIONS.map((theme) => (
+                  <Button
+                    key={theme.id}
+                    variant="outline"
+                    className={`h-16 ${theme.gradient} text-white relative ${
+                      profile.theme === theme.id ? 'ring-2 ring-primary' : ''
+                    }`}
+                    onClick={() => {
+                      const newProfile = { ...profile, theme: theme.id };
+                      setProfile(newProfile);
+                      localStorage.setItem('userProfile', JSON.stringify(newProfile));
+                      playHaptic();
+                      toast({
+                        title: "Theme updated! 🎨",
+                        description: `Switched to ${theme.name} theme.`,
+                      });
+                    }}
+                  >
+                    <div className="absolute inset-0 bg-black/20 rounded-md" />
+                    <span className="relative font-semibold">{theme.name}</span>
+                  </Button>
+                ))}
               </div>
             </CardContent>
           </Card>
-        </div>
-      )}
+        </TabsContent>
+
+        <TabsContent value="planboard" className="space-y-6">
+          <PlanBoard />
+        </TabsContent>
+      </Tabs>
     </div>
   );
 }
