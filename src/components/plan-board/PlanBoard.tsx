@@ -95,23 +95,40 @@ export function PlanBoard() {
   const unpinnedPlans = plans.filter(plan => !plan.isPinned);
 
   return (
-    <div className="space-y-6">
-      {/* Header */}
-      <div className="text-center space-y-4">
-        <div className="flex justify-center">
-          <div className="p-4 bg-gradient-primary/20 rounded-full">
-            <Sparkles className="h-8 w-8 text-primary animate-pulse" />
+    <div className="min-h-screen bg-gradient-to-br from-primary/5 via-background to-accent/5 relative overflow-hidden">
+      {/* Wall texture background */}
+      <div className="absolute inset-0 opacity-[0.02]" style={{
+        backgroundImage: `radial-gradient(circle at 1px 1px, rgba(0,0,0,0.1) 1px, transparent 0)`,
+        backgroundSize: '20px 20px'
+      }} />
+      
+      {/* Cork board pins decoration */}
+      <div className="absolute top-4 left-4 w-4 h-4 bg-gradient-accent rounded-full shadow-pin opacity-60" />
+      <div className="absolute top-4 right-4 w-4 h-4 bg-gradient-primary rounded-full shadow-pin opacity-60" />
+      <div className="absolute bottom-4 left-4 w-4 h-4 bg-gradient-success rounded-full shadow-pin opacity-60" />
+      <div className="absolute bottom-4 right-4 w-4 h-4 bg-gradient-warning rounded-full shadow-pin opacity-60" />
+      
+      <div className="relative space-y-6 p-4">
+        {/* Header */}
+        <div className="text-center space-y-4 mt-8">
+          <div className="flex justify-center">
+            <div className="relative">
+              <div className="p-6 bg-gradient-hero rounded-full shadow-playful animate-bounce-in">
+                <Sparkles className="h-12 w-12 text-white animate-pulse" />
+              </div>
+              {/* Pin decoration */}
+              <div className="absolute -top-2 -right-2 w-6 h-6 bg-gradient-accent rounded-full shadow-pin" />
+            </div>
+          </div>
+          <div className="space-y-3">
+            <h2 className="text-4xl md:text-5xl font-display font-bold bg-gradient-to-r from-primary via-accent to-primary bg-clip-text text-transparent">
+              My Plan Board
+            </h2>
+            <p className="text-muted-foreground text-lg max-w-md mx-auto leading-relaxed">
+              Your creative space to design perfect days with activities and special moments! 🌟
+            </p>
           </div>
         </div>
-        <div>
-          <h2 className="text-3xl font-bold bg-gradient-to-r from-primary to-accent bg-clip-text text-transparent">
-            My Plan Board
-          </h2>
-          <p className="text-muted-foreground mt-2">
-            Design your perfect days with activities and special moments! 🌟
-          </p>
-        </div>
-      </div>
 
       {/* Action Buttons */}
       <div className="flex flex-wrap gap-3 justify-center">
@@ -205,25 +222,34 @@ export function PlanBoard() {
         </div>
       )}
 
-      {/* Empty State */}
-      {plans.length === 0 && (
-        <div className="text-center py-12">
-          <div className="text-6xl mb-4">🎯</div>
-          <h3 className="text-lg font-semibold mb-2">Start Planning Your Perfect Days!</h3>
-          <p className="text-muted-foreground mb-4">
-            Create activities, mark special days, and build your ideal schedule.
-          </p>
-          <div className="flex gap-3 justify-center">
-            <Button 
-              onClick={() => setShowPlanForm(true)}
-              className="bg-gradient-primary hover:bg-gradient-primary/90"
-            >
-              <Plus className="h-4 w-4 mr-2" />
-              Add Your First Activity
-            </Button>
+        {/* Empty State */}
+        {plans.length === 0 && (
+          <div className="text-center py-16 px-6">
+            <div className="relative inline-block mb-8">
+              <div className="text-8xl mb-4 animate-bounce-in">🎯</div>
+              <div className="absolute -top-4 -right-4 w-8 h-8 bg-gradient-primary rounded-full shadow-pin animate-pulse" />
+            </div>
+            <Card className="max-w-lg mx-auto bg-gradient-card border-primary/20 shadow-playful">
+              <CardContent className="p-8">
+                <h3 className="text-2xl font-display font-bold mb-3 text-primary">Start Planning Your Perfect Days!</h3>
+                <p className="text-muted-foreground mb-6 leading-relaxed">
+                  Transform your dreams into reality. Create activities, mark special days, and build your ideal life schedule on this beautiful board.
+                </p>
+                <div className="flex gap-3 justify-center flex-wrap">
+                  <Button 
+                    onClick={() => setShowPlanForm(true)}
+                    className="bg-gradient-primary hover:bg-gradient-primary/90 shadow-playful font-semibold"
+                    size="lg"
+                  >
+                    <Plus className="h-5 w-5 mr-2" />
+                    Add Your First Activity
+                  </Button>
+                </div>
+              </CardContent>
+            </Card>
           </div>
-        </div>
-      )}
+        )}
+      </div>
 
       {/* Forms */}
       <PlanForm

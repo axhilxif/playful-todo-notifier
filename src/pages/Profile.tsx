@@ -1,6 +1,6 @@
 
-import { useState, useEffect } from 'react';
-import { User as UserIcon, Settings, Trophy, Star, Calendar, Timer, Target, Sparkles, Camera, Edit, Save, X } from 'lucide-react';
+import { useState, useEffect, useRef } from 'react';
+import { User as UserIcon, Settings, Trophy, Star, Calendar, Timer, Target, Sparkles, Camera, Edit, Save, X, Download, Upload, FileText, Shield } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Avatar, AvatarImage, AvatarFallback } from '@/components/ui/avatar';
@@ -13,6 +13,8 @@ import { PlanBoard } from '@/components/plan-board/PlanBoard';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { useToast } from '@/hooks/use-toast';
 import { playHaptic } from '@/lib/notifications';
+import { ACHIEVEMENTS, calculateUserStats } from '@/lib/achievements';
+import { downloadBackup, handleFileImport } from '@/lib/data-export';
 
 interface UserProfile {
   name: string;
@@ -27,23 +29,14 @@ interface UserProfile {
   theme: string;
 }
 
-const ACHIEVEMENT_BADGES = [
-  { id: 'first-todo', name: 'First Steps', emoji: '👶', description: 'Created your first todo' },
-  { id: 'week-streak', name: 'Consistent', emoji: '🔥', description: '7 day streak' },
-  { id: 'focus-master', name: 'Focus Master', emoji: '🎯', description: '10 hours of focus time' },
-  { id: 'planner', name: 'Planner', emoji: '📋', description: 'Created 10 schedule items' },
-  { id: 'early-bird', name: 'Early Bird', emoji: '🌅', description: 'Used timer before 8 AM' },
-  { id: 'night-owl', name: 'Night Owl', emoji: '🦉', description: 'Used timer after 10 PM' },
-  { id: 'productivity-guru', name: 'Productivity Guru', emoji: '⚡', description: 'Completed 50 todos' },
-  { id: 'zen-master', name: 'Zen Master', emoji: '🧘', description: '100 break reminders taken' },
-];
 
 const THEME_OPTIONS = [
-  { id: 'default', name: 'Default', gradient: 'bg-gradient-to-r from-primary to-accent' },
-  { id: 'ocean', name: 'Ocean', gradient: 'bg-gradient-to-r from-blue-500 to-cyan-400' },
-  { id: 'sunset', name: 'Sunset', gradient: 'bg-gradient-to-r from-orange-500 to-pink-500' },
-  { id: 'forest', name: 'Forest', gradient: 'bg-gradient-to-r from-green-500 to-teal-400' },
-  { id: 'galaxy', name: 'Galaxy', gradient: 'bg-gradient-to-r from-purple-500 to-indigo-500' },
+  { id: 'default', name: 'Lilac Dreams', gradient: 'bg-gradient-primary', preview: 'from-purple-400 to-pink-400' },
+  { id: 'ocean', name: 'Ocean Breeze', gradient: 'bg-gradient-to-r from-blue-400 to-cyan-400', preview: 'from-blue-400 to-cyan-400' },
+  { id: 'sunset', name: 'Warm Sunset', gradient: 'bg-gradient-to-r from-orange-400 to-pink-400', preview: 'from-orange-400 to-pink-400' },
+  { id: 'forest', name: 'Nature Green', gradient: 'bg-gradient-to-r from-green-400 to-emerald-400', preview: 'from-green-400 to-emerald-400' },
+  { id: 'galaxy', name: 'Deep Space', gradient: 'bg-gradient-to-r from-indigo-500 to-purple-600', preview: 'from-indigo-500 to-purple-600' },
+  { id: 'rose', name: 'Rose Garden', gradient: 'bg-gradient-to-r from-rose-400 to-pink-500', preview: 'from-rose-400 to-pink-500' },
 ];
 
 export default function Profile() {
@@ -70,6 +63,7 @@ export default function Profile() {
   });
   
   const { toast } = useToast();
+  const fileInputRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
     // Load profile from localStorage
@@ -116,9 +110,53 @@ export default function Profile() {
   const getXpForNextLevel = (level: number) => level * 100;
   const getXpProgress = () => (profile.xp % 100);
 
-  const unlockedAchievements = ACHIEVEMENT_BADGES.filter(badge => 
-    profile.achievements.includes(badge.id)
+  const userStats = calculateUserStats();
+  const unlockedAchievements = ACHIEVEMENTS.filter(achievement => 
+    profile.achievements.includes(achievement.id)
   );
+
+  const handleDataExport = () => {
+    downloadBackup();
+    playHaptic();
+    toast({
+      title: "Data exported! 📁",
+      description: "Your backup file has been downloaded.",
+    });
+  };
+
+  const handleDataImport = async (event: React.ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0];
+    if (!file) return;
+
+    try {
+      const result = await handleFileImport(file);
+      playHaptic();
+      
+      if (result.success) {
+        toast({
+          title: "Import successful! ✅",
+          description: result.message,
+        });
+      } else {
+        toast({
+          title: "Import failed ❌",
+          description: result.message,
+          variant: "destructive",
+        });
+      }
+    } catch (error) {
+      toast({
+        title: "Import error ❌",
+        description: "Failed to process the backup file.",
+        variant: "destructive",
+      });
+    }
+    
+    // Reset file input
+    if (fileInputRef.current) {
+      fileInputRef.current.value = '';
+    }
+  };
 
   return (
     <div className="pb-20 px-4 pt-6">
@@ -139,9 +177,10 @@ export default function Profile() {
       />
 
       <Tabs defaultValue="profile" className="space-y-6">
-        <TabsList className="grid w-full grid-cols-2">
-          <TabsTrigger value="profile">Profile & Stats</TabsTrigger>
-          <TabsTrigger value="planboard">My Plan Board</TabsTrigger>
+        <TabsList className="grid w-full grid-cols-3 mb-6">
+          <TabsTrigger value="profile" className="font-medium">Profile</TabsTrigger>
+          <TabsTrigger value="achievements" className="font-medium">Achievements</TabsTrigger>
+          <TabsTrigger value="planboard" className="font-medium">Plan Board</TabsTrigger>
         </TabsList>
 
         <TabsContent value="profile" className="space-y-6">
@@ -253,33 +292,46 @@ export default function Profile() {
             </Card>
           </div>
 
-          {/* Achievements */}
+          {/* Data Management */}
           <Card>
             <CardHeader>
               <CardTitle className="flex items-center gap-2">
-                <Trophy className="h-5 w-5 text-warning" />
-                Achievements
+                <Shield className="h-5 w-5 text-info" />
+                Data Management
               </CardTitle>
             </CardHeader>
-            <CardContent>
-              {unlockedAchievements.length === 0 ? (
-                <div className="text-center py-8">
-                  <div className="text-4xl mb-2">🏆</div>
-                  <p className="text-muted-foreground">Start using the app to unlock achievements!</p>
-                </div>
-              ) : (
-                <div className="grid grid-cols-2 gap-3">
-                  {unlockedAchievements.map((achievement) => (
-                    <div key={achievement.id} className="flex items-center gap-3 p-3 bg-gradient-warning/5 rounded-lg border border-warning/10">
-                      <div className="text-2xl">{achievement.emoji}</div>
-                      <div>
-                        <div className="font-semibold text-sm">{achievement.name}</div>
-                        <div className="text-xs text-muted-foreground">{achievement.description}</div>
-                      </div>
-                    </div>
-                  ))}
-                </div>
-              )}
+            <CardContent className="space-y-4">
+              <div className="grid grid-cols-2 gap-3">
+                <Button
+                  onClick={handleDataExport}
+                  variant="outline"
+                  className="h-16 flex-col gap-2 hover:bg-success/5 border-success/20"
+                >
+                  <Download className="h-5 w-5 text-success" />
+                  <span className="text-sm font-medium">Export Data</span>
+                </Button>
+                
+                <Button
+                  onClick={() => fileInputRef.current?.click()}
+                  variant="outline"
+                  className="h-16 flex-col gap-2 hover:bg-info/5 border-info/20"
+                >
+                  <Upload className="h-5 w-5 text-info" />
+                  <span className="text-sm font-medium">Import Data</span>
+                </Button>
+              </div>
+              
+              <div className="text-xs text-muted-foreground text-center leading-relaxed">
+                Keep your progress safe! Export creates a backup file, import restores from backup.
+              </div>
+              
+              <input
+                ref={fileInputRef}
+                type="file"
+                accept=".json"
+                onChange={handleDataImport}
+                className="hidden"
+              />
             </CardContent>
           </Card>
 
@@ -292,17 +344,18 @@ export default function Profile() {
               </CardTitle>
             </CardHeader>
             <CardContent>
-              <div className="grid grid-cols-2 gap-3">
+              <div className="grid grid-cols-2 gap-4">
                 {THEME_OPTIONS.map((theme) => (
                   <Button
                     key={theme.id}
                     variant="outline"
-                    className={`h-16 ${theme.gradient} text-white relative ${
-                      profile.theme === theme.id ? 'ring-2 ring-primary' : ''
+                    className={`h-20 p-3 relative overflow-hidden group ${
+                      profile.theme === theme.id ? 'ring-2 ring-primary shadow-glow' : 'hover:shadow-soft'
                     }`}
                     onClick={() => {
                       const newProfile = { ...profile, theme: theme.id };
                       setProfile(newProfile);
+                      setEditData(newProfile);
                       localStorage.setItem('userProfile', JSON.stringify(newProfile));
                       playHaptic();
                       toast({
@@ -311,11 +364,92 @@ export default function Profile() {
                       });
                     }}
                   >
-                    <div className="absolute inset-0 bg-black/20 rounded-md" />
-                    <span className="relative font-semibold">{theme.name}</span>
+                    <div className={`absolute inset-0 bg-gradient-to-br ${theme.preview} opacity-60 group-hover:opacity-80 transition-opacity`} />
+                    <div className="relative z-10 text-center">
+                      <div className="font-display font-semibold text-white text-sm">
+                        {theme.name}
+                      </div>
+                      {profile.theme === theme.id && (
+                        <Star className="h-4 w-4 text-white mx-auto mt-1" />
+                      )}
+                    </div>
                   </Button>
                 ))}
               </div>
+            </CardContent>
+          </Card>
+        </TabsContent>
+
+        <TabsContent value="achievements" className="space-y-6">
+          {/* Achievement Progress */}
+          <Card className="bg-gradient-hero/10 border-primary/20 shadow-glow">
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2 text-primary">
+                <Trophy className="h-6 w-6" />
+                Achievement Gallery
+              </CardTitle>
+            </CardHeader>
+            <CardContent>
+              {unlockedAchievements.length === 0 ? (
+                <div className="text-center py-12">
+                  <div className="text-6xl mb-4 animate-bounce-in">🏆</div>
+                  <h3 className="text-xl font-display font-bold mb-2">Start Your Journey!</h3>
+                  <p className="text-muted-foreground mb-6 max-w-md mx-auto leading-relaxed">
+                    Use the app to unlock amazing achievements and track your productivity milestones.
+                  </p>
+                  <Badge variant="outline" className="bg-primary/10 text-primary border-primary/20">
+                    {ACHIEVEMENTS.length} Achievements Available
+                  </Badge>
+                </div>
+              ) : (
+                <div className="space-y-6">
+                  {/* Unlocked Achievements */}
+                  <div>
+                    <h4 className="font-display font-semibold text-lg mb-4 flex items-center gap-2">
+                      <Star className="h-5 w-5 text-warning" />
+                      Unlocked ({unlockedAchievements.length}/{ACHIEVEMENTS.length})
+                    </h4>
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                      {unlockedAchievements.map((achievement) => (
+                        <Card key={achievement.id} className="bg-gradient-warning/5 border-warning/20 shadow-soft">
+                          <CardContent className="p-4">
+                            <div className="flex items-center gap-3">
+                              <div className="text-3xl">{achievement.emoji}</div>
+                              <div className="flex-1">
+                                <div className="font-display font-semibold text-warning">{achievement.name}</div>
+                                <div className="text-sm text-muted-foreground">{achievement.description}</div>
+                              </div>
+                            </div>
+                          </CardContent>
+                        </Card>
+                      ))}
+                    </div>
+                  </div>
+
+                  {/* Coming Soon Achievements */}
+                  <div>
+                    <h4 className="font-display font-semibold text-lg mb-4 flex items-center gap-2">
+                      <Target className="h-5 w-5 text-muted-foreground" />
+                      Coming Soon
+                    </h4>
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                      {ACHIEVEMENTS.filter(a => !profile.achievements.includes(a.id)).slice(0, 4).map((achievement) => (
+                        <Card key={achievement.id} className="bg-muted/20 border-muted/30 opacity-60">
+                          <CardContent className="p-4">
+                            <div className="flex items-center gap-3">
+                              <div className="text-3xl grayscale">{achievement.emoji}</div>
+                              <div className="flex-1">
+                                <div className="font-display font-semibold text-muted-foreground">{achievement.name}</div>
+                                <div className="text-sm text-muted-foreground">{achievement.description}</div>
+                              </div>
+                            </div>
+                          </CardContent>
+                        </Card>
+                      ))}
+                    </div>
+                  </div>
+                </div>
+              )}
             </CardContent>
           </Card>
         </TabsContent>

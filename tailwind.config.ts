@@ -18,6 +18,11 @@ export default {
 			}
 		},
 		extend: {
+			fontFamily: {
+				'sans': ['Inter', 'system-ui', 'sans-serif'],
+				'display': ['Poppins', 'system-ui', 'sans-serif'],
+				'mono': ['JetBrains Mono', 'Menlo', 'Monaco', 'monospace'],
+			},
 			colors: {
 				border: 'hsl(var(--border))',
 				input: 'hsl(var(--input))',
@@ -155,7 +160,10 @@ export default {
 			boxShadow: {
 				'primary': 'var(--shadow-primary)',
 				'soft': 'var(--shadow-soft)',
-				'glow': 'var(--shadow-glow)'
+				'glow': 'var(--shadow-glow)',
+				'playful': 'var(--shadow-playful)',
+				'card-hover': 'var(--shadow-card-hover)',
+				'pin': 'var(--shadow-pin)'
 			}
 		}
 	},

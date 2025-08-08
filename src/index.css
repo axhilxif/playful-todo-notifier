@@ -64,6 +64,11 @@ All colors MUST be HSL.
     /* Animations */
     --bounce-duration: 0.6s;
     --slide-duration: 0.4s;
+    
+    /* Playful shadows for wall board */
+    --shadow-playful: 0 8px 25px -8px hsl(var(--primary) / 0.3), 0 0 0 1px hsl(var(--primary) / 0.05);
+    --shadow-card-hover: 0 20px 50px -12px hsl(var(--primary) / 0.25);
+    --shadow-pin: 0 4px 12px -4px hsl(var(--accent) / 0.4);
 
     --radius: 0.5rem;
 
