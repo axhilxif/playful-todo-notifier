@@ -1,10 +1,10 @@
 
 import { Capacitor } from '@capacitor/core';
-import { LocalNotifications } from '@capacitor/local-notifications';
+import { scheduleAllReminders } from './notification-scheduler';
+import { persistentJobScheduler } from './persistent-job-scheduler';
 
 class BackgroundService {
   private static instance: BackgroundService;
-  private isRunning = false;
 
   static getInstance(): BackgroundService {
     if (!BackgroundService.instance) {
@@ -14,26 +14,18 @@ class BackgroundService {
   }
 
   start() {
-    if (this.isRunning || Capacitor.getPlatform() !== 'android') {
+    if (Capacitor.getPlatform() !== 'android') {
       return;
     }
 
-    this.isRunning = true;
-    console.log('Background service started');
-
-    setInterval(async () => {
-      console.log('Background service running');
-      const pending = await LocalNotifications.getPending();
-      if (pending.notifications.length > 0) {
-        console.log(`${pending.notifications.length} pending notifications found. Re-scheduling...`);
-        await LocalNotifications.schedule({ notifications: pending.notifications });
-      }
-    }, 60 * 1000); // Run every minute
+    persistentJobScheduler.register('reminderScheduler', 5 * 60 * 1000, async () => {
+      console.log('Running reminder scheduler job');
+      await scheduleAllReminders();
+    });
   }
 
   stop() {
-    this.isRunning = false;
-    console.log('Background service stopped');
+    persistentJobScheduler.unregister('reminderScheduler');
   }
 }
 

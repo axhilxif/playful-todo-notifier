@@ -2,6 +2,7 @@
 import { ACHIEVEMENTS, Achievement, UserStats } from './achievements';
 import { getTodos, setTodos } from './storage';
 import { Todo } from '@/types';
+import { sendImmediateNotification } from './notification-scheduler';
 
 export interface UserProfile {
   level: number;
@@ -129,6 +130,7 @@ export const checkAndUnlockAchievements = (): Achievement[] => {
       unlocked.add(achievement.id);
       newlyUnlocked.push(achievement);
       awardXP(achievement.reward.xp);
+      sendImmediateNotification('🏆 Achievement Unlocked!', `You've earned the "${achievement.name}" achievement!`, 'achievements');
     }
   }
 
@@ -154,6 +156,9 @@ export const processUserAction = (action: 'complete-todo' | 'complete-focus-sess
             break;
     }
     const { levelUp, newLevel } = awardXP(xp);
+    if (levelUp) {
+        sendImmediateNotification('⭐ Level Up!', `Congratulations! You've reached level ${newLevel}!`, 'level_ups');
+    }
     const newAchievements = checkAndUnlockAchievements();
 
     return { levelUp, newLevel, newAchievements };
