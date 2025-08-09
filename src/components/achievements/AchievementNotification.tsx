@@ -1,24 +1,43 @@
 import { useEffect } from 'react';
 import { Badge } from '@/components/ui/badge';
 import { Card, CardContent } from '@/components/ui/card';
-import { Trophy, X } from 'lucide-react';
+import { Trophy, X, Star } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Achievement } from '@/lib/achievements';
 import { useToast } from '@/hooks/use-toast';
 import { playHaptic } from '@/lib/notifications';
+import { motion, AnimatePresence } from 'framer-motion';
+import { Progress } from '@/components/ui/progress';
+import { calculateLevel } from '@/lib/level-system';
+import { useIsMobile } from '@/hooks/use-mobile';
+import { cn } from '@/lib/utils';
 
 interface AchievementNotificationProps {
   achievement: Achievement;
   onDismiss: () => void;
+  xpGained?: number;
+  totalXp?: number;
 }
 
-export function AchievementNotification({ achievement, onDismiss }: AchievementNotificationProps) {
+export function AchievementNotification({ 
+  achievement, 
+  onDismiss,
+  xpGained = 0,
+  totalXp = 0
+}: AchievementNotificationProps) {
   const { toast } = useToast();
+  const isMobile = useIsMobile();
+  const levelInfo = xpGained ? calculateLevel(totalXp) : null;
+  const previousLevelInfo = xpGained ? calculateLevel(totalXp - xpGained) : null;
+  
+  const levelProgress = levelInfo && previousLevelInfo
+    ? ((totalXp - previousLevelInfo.xpNeeded) / 
+      (levelInfo.xpNeeded - previousLevelInfo.xpNeeded)) * 100
+    : 0;
 
   useEffect(() => {
     playHaptic();
     
-    // Auto dismiss after 5 seconds
     const timer = setTimeout(() => {
       onDismiss();
     }, 5000);
@@ -27,33 +46,96 @@ export function AchievementNotification({ achievement, onDismiss }: AchievementN
   }, [onDismiss]);
 
   return (
-    <div className="fixed top-4 right-4 z-50 animate-slide-in-right">
+    <motion.div 
+      className={cn(
+        "fixed z-50",
+        isMobile ? "top-4 left-4 right-4" : "top-4 right-4"
+      )}
+      initial={{ opacity: 0, scale: 0.8, y: -50 }}
+      animate={{ 
+        opacity: 1, 
+        scale: 1, 
+        y: 0,
+        transition: { 
+          type: "spring",
+          stiffness: 200,
+          damping: 20
+        }
+      }}
+      exit={{ opacity: 0, scale: 0.8, y: -50 }}
+    >
       <Card className="bg-gradient-warning/95 backdrop-blur-sm border-warning/30 shadow-glow max-w-sm">
         <CardContent className="p-4">
           <div className="flex items-start justify-between gap-3">
             <div className="flex items-center gap-3">
-              <div className="w-12 h-12 bg-white/20 rounded-full flex items-center justify-center">
+              <motion.div 
+                className="w-12 h-12 bg-white/20 rounded-full flex items-center justify-center"
+                animate={{ 
+                  scale: [1, 1.2, 1],
+                  rotate: [0, -10, 10, -10, 0]
+                }}
+                transition={{ duration: 0.5 }}
+              >
                 <span className="text-2xl">{achievement.emoji}</span>
-              </div>
+              </motion.div>
               <div className="flex-1">
-                <div className="flex items-center gap-2 mb-1">
+                <motion.div 
+                  className="flex items-center gap-2 mb-1"
+                  initial={{ opacity: 0, x: -20 }}
+                  animate={{ opacity: 1, x: 0 }}
+                  transition={{ delay: 0.2 }}
+                >
                   <Trophy className="h-4 w-4 text-warning-foreground" />
-                  <Badge variant="secondary" className="bg-white/20 text-warning-foreground text-xs">
+                  <Badge 
+                    variant="secondary" 
+                    className="bg-white/20 text-warning-foreground text-xs animate-pulse"
+                  >
                     Achievement Unlocked!
                   </Badge>
-                </div>
-                <h4 className="font-display font-semibold text-warning-foreground">
+                </motion.div>
+                <motion.h4 
+                  className="font-display font-semibold text-warning-foreground"
+                  initial={{ opacity: 0 }}
+                  animate={{ opacity: 1 }}
+                  transition={{ delay: 0.3 }}
+                >
                   {achievement.name}
-                </h4>
-                <p className="text-sm text-warning-foreground/80 leading-snug">
+                </motion.h4>
+                <motion.p 
+                  className="text-sm text-warning-foreground/80 leading-snug"
+                  initial={{ opacity: 0 }}
+                  animate={{ opacity: 1 }}
+                  transition={{ delay: 0.4 }}
+                >
                   {achievement.description}
-                </p>
+                </motion.p>
+                
+                {xpGained > 0 && levelInfo && (
+                  <motion.div 
+                    className="mt-3"
+                    initial={{ opacity: 0 }}
+                    animate={{ opacity: 1 }}
+                    transition={{ delay: 0.5 }}
+                  >
+                    <div className="flex items-center gap-2 text-xs font-medium mb-1 text-warning-foreground">
+                      <Star className="h-3 w-3" />
+                      +{xpGained} XP
+                    </div>
+                    <Progress 
+                      value={levelProgress} 
+                      className="h-1 bg-white/20" 
+                    />
+                    <div className="text-xs mt-1 text-warning-foreground/80">
+                      Level {levelInfo.level} - {levelInfo.title}
+                    </div>
+                  </motion.div>
+                )}
               </div>
             </div>
-            <Button 
-              variant="ghost" 
-              size="sm" 
-              className="h-6 w-6 p-0 text-warning-foreground/60 hover:text-warning-foreground"
+            <Button
+              size="icon"
+              variant="ghost"
+              className="text-warning-foreground/80 hover:text-warning-foreground hover:bg-white/20"
               onClick={onDismiss}
             >
               <X className="h-4 w-4" />
@@ -61,6 +143,6 @@ export function AchievementNotification({ achievement, onDismiss }: AchievementN
           </div>
         </CardContent>
       </Card>
-    </div>
+    </motion.div>
   );
 }

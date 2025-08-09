@@ -1,5 +1,5 @@
-import { useState, useEffect } from 'react';
-import { Settings as SettingsIcon, Bell, Clock, Smartphone } from 'lucide-react';
+import { useState, useEffect, useRef } from 'react';
+import { Settings as SettingsIcon, Bell, Clock, Smartphone, Download, Upload, Shield, Play, RefreshCw } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Switch } from '@/components/ui/switch';
@@ -8,9 +8,10 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { PageHeader } from '@/components/ui/page-header';
 import { NotificationSettings } from '@/types';
 import { getSettings, setSettings } from '@/lib/storage';
-import { requestNotificationPermission, scheduleBreakReminder } from '@/lib/notifications';
-import { playHaptic } from '@/lib/notifications';
+import { requestNotificationPermission, scheduleBreakReminder, playHaptic } from '@/lib/notifications';
 import { useToast } from '@/hooks/use-toast';
+import { useIntroScreen } from '@/hooks/use-intro-screen';
+import { downloadBackup, handleFileImport } from '@/lib/data-export';
 
 export default function Settings() {
   const [settings, setSettingsState] = useState<NotificationSettings>({
@@ -22,6 +23,41 @@ export default function Settings() {
   });
   const [hasPermission, setHasPermission] = useState(false);
   const { toast } = useToast();
+  const { showIntro } = useIntroScreen();
+  const fileInputRef = useRef<HTMLInputElement>(null);
+
+  const handleDataImport = async (event: React.ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0];
+    if (!file) return;
+
+    try {
+      const result = await handleFileImport(file);
+      playHaptic();
+      
+      if (result.success) {
+        toast({
+          title: "Import successful! ✅",
+          description: result.message,
+        });
+      } else {
+        toast({
+          title: "Import failed ❌",
+          description: result.message,
+          variant: "destructive",
+        });
+      }
+    } catch (error) {
+      toast({
+        title: "Import error ❌",
+        description: "Failed to process the backup file.",
+        variant: "destructive",
+      });
+    }
+    
+    if (fileInputRef.current) {
+      fileInputRef.current.value = '';
+    }
+  };
 
   useEffect(() => {
     const storedSettings = getSettings();
@@ -259,6 +295,65 @@ export default function Settings() {
         </CardContent>
       </Card>
 
+      {/* App Management */}
+      <Card className="mb-6">
+        <CardHeader>
+          <CardTitle className="text-lg flex items-center gap-2">
+            <RefreshCw className="h-5 w-5 text-info" />
+            App Management
+          </CardTitle>
+        </CardHeader>
+        <CardContent className="space-y-6">
+          <div className="grid grid-cols-2 gap-3">
+            <Button
+              variant="outline"
+              className="h-14 flex-col gap-1.5 hover:bg-info/5 border-info/20"
+              onClick={() => {
+                downloadBackup();
+                playHaptic();
+                toast({
+                  title: "Data exported! 📁",
+                  description: "Your backup file has been downloaded.",
+                });
+              }}
+            >
+              <Download className="h-4 w-4 text-info" />
+              <span className="text-xs font-medium">Export Data</span>
+            </Button>
+            
+            <Button
+              variant="outline"
+              className="h-14 flex-col gap-1.5 hover:bg-info/5 border-info/20"
+              onClick={() => fileInputRef.current?.click()}
+            >
+              <Upload className="h-4 w-4 text-info" />
+              <span className="text-xs font-medium">Import Data</span>
+            </Button>
+
+            <Button
+              variant="outline"
+              className="h-14 flex-col gap-1.5 hover:bg-primary/5 border-primary/20"
+              onClick={showIntro}
+            >
+              <Play className="h-4 w-4 text-primary" />
+              <span className="text-xs font-medium">View Tutorial</span>
+            </Button>
+          </div>
+
+          <div className="text-xs text-muted-foreground text-center leading-relaxed">
+            Keep your progress safe by regularly exporting your data. You can restore it later using the import feature.
+          </div>
+          
+          <input
+            ref={fileInputRef}
+            type="file"
+            accept=".json"
+            onChange={handleDataImport}
+            className="hidden"
+          />
+        </CardContent>
+      </Card>
+
       {/* App Info */}
       <Card className="mb-6">
         <CardHeader>
@@ -271,7 +366,7 @@ export default function Settings() {
           <div className="grid grid-cols-2 gap-4 text-sm">
             <div>
               <div className="font-medium text-foreground">App Name</div>
-              <div className="text-muted-foreground">Playful Todo Notifier</div>
+              <div className="text-muted-foreground">StudyBuddy</div>
             </div>
             <div>
               <div className="font-medium text-foreground">Version</div>
@@ -279,7 +374,7 @@ export default function Settings() {
             </div>
             <div>
               <div className="font-medium text-foreground">Build Type</div>
-              <div className="text-muted-foreground">Mobile Ready</div>
+              <div className="text-muted-foreground">Mobile/Tablet</div>
             </div>
             <div>
               <div className="font-medium text-foreground">Platform</div>

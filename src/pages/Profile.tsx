@@ -1,6 +1,7 @@
 
 import { useState, useEffect, useRef } from 'react';
-import { User as UserIcon, Settings, Trophy, Star, Calendar, Timer, Target, Sparkles, Camera, Edit, Save, X, Download, Upload, FileText, Shield } from 'lucide-react';
+import { User as UserIcon, Settings, Trophy, Star, Calendar, Timer, Target, Sparkles, Camera, Edit, Save, X, Download, Upload, FileText, Shield, Brain, Award, Zap, Activity } from 'lucide-react';
+import { BarChart, RadialBarChart, RadialBar, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Avatar, AvatarImage, AvatarFallback } from '@/components/ui/avatar';
@@ -13,8 +14,9 @@ import { PlanBoard } from '@/components/plan-board/PlanBoard';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { useToast } from '@/hooks/use-toast';
 import { playHaptic } from '@/lib/notifications';
-import { ACHIEVEMENTS, calculateUserStats } from '@/lib/achievements';
+import { ACHIEVEMENTS } from '@/lib/achievements';
 import { downloadBackup, handleFileImport } from '@/lib/data-export';
+import { cn } from '@/lib/utils';
 
 interface UserProfile {
   name: string;
@@ -26,18 +28,32 @@ interface UserProfile {
   streak: number;
   achievements: string[];
   favoriteEmoji: string;
-  theme: string;
 }
 
 
-const THEME_OPTIONS = [
-  { id: 'default', name: 'Lilac Dreams', gradient: 'bg-gradient-primary', preview: 'from-purple-400 to-pink-400' },
-  { id: 'ocean', name: 'Ocean Breeze', gradient: 'bg-gradient-to-r from-blue-400 to-cyan-400', preview: 'from-blue-400 to-cyan-400' },
-  { id: 'sunset', name: 'Warm Sunset', gradient: 'bg-gradient-to-r from-orange-400 to-pink-400', preview: 'from-orange-400 to-pink-400' },
-  { id: 'forest', name: 'Nature Green', gradient: 'bg-gradient-to-r from-green-400 to-emerald-400', preview: 'from-green-400 to-emerald-400' },
-  { id: 'galaxy', name: 'Deep Space', gradient: 'bg-gradient-to-r from-indigo-500 to-purple-600', preview: 'from-indigo-500 to-purple-600' },
-  { id: 'rose', name: 'Rose Garden', gradient: 'bg-gradient-to-r from-rose-400 to-pink-500', preview: 'from-rose-400 to-pink-500' },
-];
+function calculateStreak(todos: any[]) {
+  const today = new Date();
+  const dailyActivity = new Array(7).fill(false);
+
+  todos.forEach((todo: any) => {
+    if (todo.completed) {
+      const completedDate = new Date(todo.completedAt);
+      const dayDiff = Math.floor((today.getTime() - completedDate.getTime()) / (1000 * 60 * 60 * 24));
+      if (dayDiff < 7) {
+        dailyActivity[dayDiff] = true;
+      }
+    }
+  });
+
+  let streak = 0;
+  for (const active of dailyActivity) {
+    if (active) streak++;
+    else break;
+  }
+  return streak;
+}
+
+// THEME_OPTIONS removed
 
 export default function Profile() {
   const [profile, setProfile] = useState<UserProfile>({
@@ -50,17 +66,65 @@ export default function Profile() {
     streak: 5,
     achievements: ['first-todo', 'week-streak'],
     favoriteEmoji: '🚀',
-    theme: 'default',
   });
   
   const [isEditing, setIsEditing] = useState(false);
   const [editData, setEditData] = useState(profile);
+  const [activeView, setActiveView] = useState<'overview' | 'skills' | 'achievements'>('overview');
+  
   const [stats, setStats] = useState({
     totalTodos: 0,
     completedTodos: 0,
     totalFocusTime: 0,
     planBoardItems: 0,
+    weeklyProgress: 0,
+    monthlyGoals: 0,
+    avgDailyFocus: 0,
+    productiveHours: [],
+    weeklyStreak: 0,
+    skillLevels: {
+      focus: 0,
+      planning: 0,
+      consistency: 0,
+      achievement: 0
+    }
   });
+
+  const StatCard = ({ icon: Icon, title, value, subtext, gradient = "bg-gradient-primary" }) => (
+    <Card className="overflow-hidden">
+      <CardContent className="p-6">
+        <div className="flex items-start justify-between">
+          <div className="space-y-2">
+            <p className="text-sm text-muted-foreground">{title}</p>
+            <div className="flex items-baseline gap-2">
+              <p className="text-2xl font-bold">{value}</p>
+              {subtext && <p className="text-sm text-muted-foreground">{subtext}</p>}
+            </div>
+          </div>
+          <div className={cn("p-2 rounded-full", gradient)}>
+            <Icon className="w-4 h-4" />
+          </div>
+        </div>
+      </CardContent>
+    </Card>
+  );
+
+  const SkillCard = ({ icon: Icon, name, level, color }) => (
+    <Card>
+      <CardContent className="p-4">
+        <div className="flex items-center gap-4 mb-2">
+          <div className={cn("p-2 rounded-lg", `bg-${color}-100 text-${color}-600`)}>
+            <Icon className="w-5 h-5" />
+          </div>
+          <div>
+            <h4 className="font-medium">{name}</h4>
+            <p className="text-sm text-muted-foreground">Level {Math.floor(level / 10)}</p>
+          </div>
+        </div>
+        <Progress value={level} className="h-2" />
+      </CardContent>
+    </Card>
+  );
   
   const { toast } = useToast();
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -81,11 +145,46 @@ export default function Profile() {
 
     const totalFocusSeconds = focusSessions.reduce((total: number, session: any) => total + session.duration, 0);
 
+    // Calculate weekly progress
+    const now = new Date();
+    const weekStart = new Date(now.setDate(now.getDate() - now.getDay()));
+    const weeklyTodos = todos.filter((todo: any) => new Date(todo.createdAt) >= weekStart);
+    const weeklyCompleted = weeklyTodos.filter((todo: any) => todo.completed);
+    const weeklyProgress = weeklyTodos.length ? (weeklyCompleted.length / weeklyTodos.length * 100) : 0;
+
+    // Calculate monthly goals
+    const monthStart = new Date(now.getFullYear(), now.getMonth(), 1);
+    const monthlyPlanItems = planBoard.filter((item: any) => new Date(item.createdAt) >= monthStart);
+    
+    // Calculate productive hours
+    const focusHours = focusSessions.reduce((acc: number[], session: any) => {
+      const hour = new Date(session.startTime).getHours();
+      acc[hour] = (acc[hour] || 0) + session.duration / 3600;
+      return acc;
+    }, Array(24).fill(0));
+
+    // Calculate skill levels
+    const focusLevel = Math.min(Math.floor(totalFocusSeconds / (3600 * 20)), 100); // 20 hours for max level
+    const planningLevel = Math.min(Math.floor(planBoard.length / 5), 100); // 5 items for a level
+    const consistencyLevel = Math.min(Math.floor(weeklyProgress / 10), 100);
+    const achievementLevel = Math.min(profile.achievements.length * 10, 100);
+
     setStats({
       totalTodos: todos.length,
       completedTodos: todos.filter((todo: any) => todo.completed).length,
-      totalFocusTime: Math.round(totalFocusSeconds / 3600 * 10) / 10, // hours
+      totalFocusTime: Math.round(totalFocusSeconds / 3600 * 10) / 10,
       planBoardItems: planBoard.length,
+      weeklyProgress,
+      monthlyGoals: monthlyPlanItems.length,
+      avgDailyFocus: Math.round(totalFocusSeconds / (7 * 3600) * 10) / 10,
+      productiveHours: focusHours,
+      weeklyStreak: calculateStreak(todos),
+      skillLevels: {
+        focus: focusLevel,
+        planning: planningLevel,
+        consistency: consistencyLevel,
+        achievement: achievementLevel
+      }
     });
   }, []);
 
@@ -110,7 +209,7 @@ export default function Profile() {
   const getXpForNextLevel = (level: number) => level * 100;
   const getXpProgress = () => (profile.xp % 100);
 
-  const userStats = calculateUserStats();
+  // const userStats = calculateUserStats();
   const unlockedAchievements = ACHIEVEMENTS.filter(achievement => 
     profile.achievements.includes(achievement.id)
   );
@@ -262,35 +361,113 @@ export default function Profile() {
           </Card>
 
           {/* Quick Stats */}
-          <div className="grid grid-cols-2 gap-4">
-            <Card className="bg-gradient-primary/5 border-primary/20">
-              <CardContent className="p-4 text-center">
-                <div className="text-3xl font-bold text-primary">{stats.totalTodos}</div>
-                <div className="text-sm text-muted-foreground">Total Todos</div>
-              </CardContent>
-            </Card>
-            
-            <Card className="bg-gradient-success/5 border-success/20">
-              <CardContent className="p-4 text-center">
-                <div className="text-3xl font-bold text-success">{stats.completedTodos}</div>
-                <div className="text-sm text-muted-foreground">Completed</div>
-              </CardContent>
-            </Card>
-            
-            <Card className="bg-gradient-accent/5 border-accent/20">
-              <CardContent className="p-4 text-center">
-                <div className="text-3xl font-bold text-accent">{stats.totalFocusTime}h</div>
-                <div className="text-sm text-muted-foreground">Focus Time</div>
-              </CardContent>
-            </Card>
-            
-            <Card className="bg-gradient-warning/5 border-warning/20">
-              <CardContent className="p-4 text-center">
-                <div className="text-3xl font-bold text-warning">{stats.planBoardItems}</div>
-                <div className="text-sm text-muted-foreground">Plans Created</div>
-              </CardContent>
-            </Card>
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+            <StatCard
+              icon={Target}
+              title="Tasks Completed"
+              value={`${stats.completedTodos}/${stats.totalTodos}`}
+              subtext={`${Math.round((stats.completedTodos / stats.totalTodos) * 100)}%`}
+              gradient="bg-gradient-to-br from-primary to-accent"
+            />
+            <StatCard
+              icon={Timer}
+              title="Focus Time"
+              value={`${stats.totalFocusTime}h`}
+              subtext={`${stats.avgDailyFocus}h daily avg`}
+              gradient="bg-gradient-to-br from-accent to-success"
+            />
+            <StatCard
+              icon={Calendar}
+              title="Weekly Streak"
+              value={stats.weeklyStreak}
+              subtext="days"
+              gradient="bg-gradient-to-br from-success to-warning"
+            />
+            <StatCard
+              icon={Sparkles}
+              title="Monthly Goals"
+              value={stats.monthlyGoals}
+              subtext="plans created"
+              gradient="bg-gradient-to-br from-warning to-primary"
+            />
           </div>
+
+          {/* Productivity Insights */}
+          <Card>
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2">
+                <Activity className="h-5 w-5 text-primary" />
+                Productivity Insights
+              </CardTitle>
+            </CardHeader>
+            <CardContent>
+              <div className="space-y-6">
+                {/* Skill Levels - stack on mobile */}
+                <div>
+                  <h4 className="text-sm font-medium mb-4">Your Skills</h4>
+                  <div className="flex flex-col gap-4 sm:grid sm:grid-cols-2">
+                    <SkillCard
+                      icon={Brain}
+                      name="Focus Power"
+                      level={stats.skillLevels.focus}
+                      color="primary"
+                    />
+                    <SkillCard
+                      icon={Target}
+                      name="Planning"
+                      level={stats.skillLevels.planning}
+                      color="accent"
+                    />
+                    <SkillCard
+                      icon={Award}
+                      name="Consistency"
+                      level={stats.skillLevels.consistency}
+                      color="success"
+                    />
+                    <SkillCard
+                      icon={Trophy}
+                      name="Achievement"
+                      level={stats.skillLevels.achievement}
+                      color="warning"
+                    />
+                  </div>
+                </div>
+
+                {/* Productive Hours Chart - scrollable on mobile */}
+                <div>
+                  <h4 className="text-sm font-medium mb-4">Most Productive Hours</h4>
+                  <div className="h-[200px] overflow-x-auto">
+                    <ResponsiveContainer width="100%" height="100%">
+                      <BarChart data={stats.productiveHours.map((value, hour) => ({
+                        hour: `${hour}:00`,
+                        value
+                      }))}>
+                        <CartesianGrid strokeDasharray="3 3" className="stroke-muted" />
+                        <XAxis dataKey="hour" className="text-xs" />
+                        <YAxis className="text-xs" />
+                        <Tooltip 
+                          content={({ active, payload }) => {
+                            if (active && payload && payload.length) {
+                              return (
+                                <div className="bg-background p-2 rounded-lg border shadow-lg">
+                                  <p className="text-sm font-medium">{payload[0].payload.hour}</p>
+                                  <p className="text-sm text-muted-foreground">
+                                    {Math.round(Number(payload[0].value) * 10) / 10}h focus time
+                                  </p>
+                                </div>
+                              );
+                            }
+                            return null;
+                          }}
+                        />
+                        <Bar dataKey="value" className="fill-primary" />
+                      </BarChart>
+                    </ResponsiveContainer>
+                  </div>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
 
           {/* Data Management */}
           <Card>
@@ -335,49 +512,7 @@ export default function Profile() {
             </CardContent>
           </Card>
 
-          {/* Theme Selection */}
-          <Card>
-            <CardHeader>
-              <CardTitle className="flex items-center gap-2">
-                <Sparkles className="h-5 w-5 text-primary" />
-                Customize Theme
-              </CardTitle>
-            </CardHeader>
-            <CardContent>
-              <div className="grid grid-cols-2 gap-4">
-                {THEME_OPTIONS.map((theme) => (
-                  <Button
-                    key={theme.id}
-                    variant="outline"
-                    className={`h-20 p-3 relative overflow-hidden group ${
-                      profile.theme === theme.id ? 'ring-2 ring-primary shadow-glow' : 'hover:shadow-soft'
-                    }`}
-                    onClick={() => {
-                      const newProfile = { ...profile, theme: theme.id };
-                      setProfile(newProfile);
-                      setEditData(newProfile);
-                      localStorage.setItem('userProfile', JSON.stringify(newProfile));
-                      playHaptic();
-                      toast({
-                        title: "Theme updated! 🎨",
-                        description: `Switched to ${theme.name} theme.`,
-                      });
-                    }}
-                  >
-                    <div className={`absolute inset-0 bg-gradient-to-br ${theme.preview} opacity-60 group-hover:opacity-80 transition-opacity`} />
-                    <div className="relative z-10 text-center">
-                      <div className="font-display font-semibold text-white text-sm">
-                        {theme.name}
-                      </div>
-                      {profile.theme === theme.id && (
-                        <Star className="h-4 w-4 text-white mx-auto mt-1" />
-                      )}
-                    </div>
-                  </Button>
-                ))}
-              </div>
-            </CardContent>
-          </Card>
+          {/* Theme Selection removed */}
         </TabsContent>
 
         <TabsContent value="achievements" className="space-y-6">

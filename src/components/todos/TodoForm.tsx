@@ -190,10 +190,10 @@ export function TodoForm({ open, onOpenChange, onSubmit, initialData, title }: T
             />
           </div>
 
-          {/* Notification Time */}
+          {/* Notification Date & Time */}
           {enableNotification && (
             <div className="space-y-2">
-              <Label className="text-sm font-medium">Reminder Time</Label>
+              <Label className="text-sm font-medium">Reminder Date</Label>
               <Popover open={notificationOpen} onOpenChange={setNotificationOpen}>
                 <PopoverTrigger asChild>
                   <Button
@@ -203,10 +203,10 @@ export function TodoForm({ open, onOpenChange, onSubmit, initialData, title }: T
                       !formData.notificationTime && "text-muted-foreground"
                     )}
                   >
-                    <Clock className="mr-2 h-4 w-4" />
-                    {formData.notificationTime 
-                      ? format(formData.notificationTime, "PPP 'at' p") 
-                      : "Set reminder time"}
+                    <CalendarIcon className="mr-2 h-4 w-4" />
+                    {formData.notificationTime
+                      ? format(formData.notificationTime, "PPP")
+                      : "Pick a reminder date"}
                   </Button>
                 </PopoverTrigger>
                 <PopoverContent className="w-auto p-0" align="start">
@@ -215,9 +215,9 @@ export function TodoForm({ open, onOpenChange, onSubmit, initialData, title }: T
                     selected={formData.notificationTime}
                     onSelect={(date) => {
                       if (date) {
-                        // Set time to current time if only date is selected
-                        const now = new Date();
-                        date.setHours(now.getHours(), now.getMinutes());
+                        // If time is already set, preserve it
+                        const prev = formData.notificationTime || new Date();
+                        date.setHours(prev.getHours(), prev.getMinutes());
                       }
                       setFormData(prev => ({ ...prev, notificationTime: date }));
                       setNotificationOpen(false);
@@ -226,6 +226,20 @@ export function TodoForm({ open, onOpenChange, onSubmit, initialData, title }: T
                   />
                 </PopoverContent>
               </Popover>
+              <Label className="text-sm font-medium">Reminder Time</Label>
+              <Input
+                type="time"
+                value={formData.notificationTime ? format(formData.notificationTime, "HH:mm") : ''}
+                onChange={e => {
+                  const [hours, minutes] = e.target.value.split(":").map(Number);
+                  setFormData(prev => {
+                    const date = prev.notificationTime ? new Date(prev.notificationTime) : new Date();
+                    date.setHours(hours, minutes, 0, 0);
+                    return { ...prev, notificationTime: date };
+                  });
+                }}
+                className="w-full"
+              />
             </div>
           )}
 

@@ -1,6 +1,7 @@
 
 import { LocalNotifications } from '@capacitor/local-notifications';
 import { App } from '@capacitor/app';
+import { Capacitor } from '@capacitor/core';
 
 export class BackgroundNotificationManager {
   private static instance: BackgroundNotificationManager;
@@ -15,6 +16,14 @@ export class BackgroundNotificationManager {
 
   async initialize(): Promise<void> {
     if (this.isInitialized) return;
+
+    // Only initialize on native platforms (iOS/Android). Skip on web to avoid errors.
+    const platform = (Capacitor as any)?.getPlatform ? (Capacitor as any).getPlatform() : 'web';
+    if (platform === 'web') {
+      this.isInitialized = true;
+      console.info('Background notifications are disabled on web platform.');
+      return;
+    }
 
     try {
       // Request permissions first
@@ -32,6 +41,10 @@ export class BackgroundNotificationManager {
           this.ensureBackgroundNotifications();
         }
       });
+      // Listen for resume event (app brought to foreground)
+      App.addListener('resume', () => {
+        this.rescheduleAllNotifications();
+      });
 
       this.isInitialized = true;
       console.log('Background notification manager initialized');
@@ -41,8 +54,11 @@ export class BackgroundNotificationManager {
   }
 
   private async setupBackgroundScheduling(): Promise<void> {
-    // Clear existing notifications
-    await LocalNotifications.cancel({ notifications: [] });
+    // Clear existing pending notifications safely
+    const pending = await LocalNotifications.getPending();
+    if (pending && Array.isArray((pending as any).notifications) && (pending as any).notifications.length > 0) {
+      await LocalNotifications.cancel({ notifications: (pending as any).notifications });
+    }
 
     // Schedule recurring notifications that work in background
     const now = new Date();
@@ -75,6 +91,11 @@ export class BackgroundNotificationManager {
     }, 1000);
   }
 
+  // Public method to allow manual re-scheduling (e.g., after reboot)
+  public async rescheduleAllNotifications(): Promise<void> {
+    await this.setupBackgroundScheduling();
+  }
+
   async scheduleCustomNotification(
     id: number,
     title: string,
@@ -82,6 +103,11 @@ export class BackgroundNotificationManager {
     scheduledAt: Date,
     recurring: boolean = false
   ): Promise<void> {
+    const platform = (Capacitor as any)?.getPlatform ? (Capacitor as any).getPlatform() : 'web';
+    if (platform === 'web') {
+      console.info('Skipping scheduling custom notification on web.');
+      return;
+    }
     const notification = {
       id,
       title,

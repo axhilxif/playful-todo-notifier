@@ -2,7 +2,7 @@ import type { CapacitorConfig } from '@capacitor/cli';
 
 const config: CapacitorConfig = {
   appId: 'app.accs.todo',
-  appName: 'MyFocus',
+  appName: 'StudyBuddy',
   webDir: 'dist',
   bundledWebRuntime: false,
   plugins: {

@@ -1,21 +1,104 @@
+:root, .theme-default {
+  --primary: #a78bfa;
+  --accent: #f472b6;
+  --secondary: #fbbf24;
+  --background: #f9fafb;
+  --foreground: #18181b;
+  --success: #34d399;
+  --warning: #f59e42;
+  --info: #38bdf8;
+}
+.theme-ocean {
+  --primary: #38bdf8;
+  --accent: #06b6d4;
+  --secondary: #0ea5e9;
+  --background: #e0f2fe;
+  --foreground: #0f172a;
+  --success: #22d3ee;
+  --warning: #fbbf24;
+  --info: #2563eb;
+}
+.theme-sunset {
+  --primary: #fb7185;
+  --accent: #fbbf24;
+  --secondary: #f472b6;
+  --background: #fff7ed;
+  --foreground: #7c2d12;
+  --success: #f59e42;
+  --warning: #f472b6;
+  --info: #fbbf24;
+}
+.theme-forest {
+  --primary: #22c55e;
+  --accent: #16a34a;
+  --secondary: #a3e635;
+  --background: #f0fdf4;
+  --foreground: #052e16;
+  --success: #4ade80;
+  --warning: #fbbf24;
+  --info: #22d3ee;
+}
+.theme-galaxy {
+  --primary: #6366f1;
+  --accent: #a21caf;
+  --secondary: #f472b6;
+  --background: #18181b;
+  --foreground: #f3f4f6;
+  --success: #818cf8;
+  --warning: #fbbf24;
+  --info: #38bdf8;
+}
+.theme-rose {
+  --primary: #f472b6;
+  --accent: #fb7185;
+  --secondary: #fbbf24;
+  --background: #fff1f2;
+  --foreground: #831843;
+  --success: #f472b6;
+  --warning: #fbbf24;
+  --info: #38bdf8;
+}
+
 #root {
   max-width: 1280px;
   margin: 0 auto;
-  padding: 2rem;
+  padding: 0;
   text-align: center;
 }
 
-.logo {
-  height: 6em;
-  padding: 1.5em;
-  will-change: filter;
-  transition: filter 300ms;
+@keyframes bounce-slow {
+  0%, 100% {
+    transform: translateY(0);
+  }
+  50% {
+    transform: translateY(-10px);
+  }
 }
-.logo:hover {
-  filter: drop-shadow(0 0 2em #646cffaa);
+
+.animate-bounce-slow {
+  animation: bounce-slow 3s infinite;
 }
-.logo.react:hover {
-  filter: drop-shadow(0 0 2em #61dafbaa);
+
+@keyframes gradient-shift {
+  0% {
+    background-position: 0% 50%;
+  }
+  50% {
+    background-position: 100% 50%;
+  }
+  100% {
+    background-position: 0% 50%;
+  }
+}
+
+.bg-gradient-hero {
+  background: linear-gradient(-45deg, var(--primary), var(--accent), var(--secondary), var(--background));
+  background-size: 400% 400%;
+  animation: gradient-shift 15s ease infinite;
+}
+
+.shadow-glow {
+  box-shadow: 0 0 15px var(--accent);
 }
 
 @keyframes logo-spin {

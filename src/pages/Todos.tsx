@@ -7,7 +7,7 @@ import { TodoCard } from '@/components/todos/TodoCard';
 import { TodoForm } from '@/components/todos/TodoForm';
 import { Todo } from '@/types';
 import { getTodos, setTodos } from '@/lib/storage';
-import { playHaptic } from '@/lib/notifications';
+import { playHaptic, requestNotificationPermission, scheduleTodoReminder, cancelNotification } from '@/lib/notifications';
 import { useToast } from '@/hooks/use-toast';
 
 export default function Todos() {
@@ -21,6 +21,17 @@ export default function Todos() {
   useEffect(() => {
     const storedTodos = getTodos();
     setTodosState(storedTodos);
+    // On app launch, re-schedule all pending todo reminders
+    storedTodos.forEach(todo => {
+      if (todo.notificationTime) {
+        const time = new Date(todo.notificationTime);
+        if (time > new Date()) {
+          requestNotificationPermission().then(granted => {
+            if (granted) scheduleTodoReminder(todo.id, todo.title, time);
+          });
+        }
+      }
+    });
   }, []);
 
   const saveTodos = (newTodos: Todo[]) => {
@@ -28,7 +39,7 @@ export default function Todos() {
     setTodosState(newTodos);
   };
 
-  const handleAddTodo = (todoData: Omit<Todo, 'id' | 'createdAt'>) => {
+  const handleAddTodo = async (todoData: Omit<Todo, 'id' | 'createdAt'>) => {
     const newTodo: Todo = {
       ...todoData,
       id: Date.now().toString(),
@@ -39,14 +50,22 @@ export default function Todos() {
     saveTodos(updatedTodos);
     setShowForm(false);
     playHaptic();
-    
+    // Schedule notification if needed
+    if (newTodo.notificationTime) {
+      const time = new Date(newTodo.notificationTime);
+      if (time > new Date()) {
+        const granted = await requestNotificationPermission();
+        if (granted) scheduleTodoReminder(newTodo.id, newTodo.title, time);
+        else toast({ title: "Notifications Disabled", description: "Enable notification permissions to receive reminders." });
+      }
+    }
     toast({
       title: "Todo added! 🎉",
       description: `"${newTodo.title}" has been added to your list.`,
     });
   };
 
-  const handleEditTodo = (todoData: Omit<Todo, 'id' | 'createdAt'>) => {
+  const handleEditTodo = async (todoData: Omit<Todo, 'id' | 'createdAt'>) => {
     if (!editingTodo) return;
     
     const updatedTodo: Todo = {
@@ -57,12 +76,21 @@ export default function Todos() {
     const updatedTodos = todos.map(todo => 
       todo.id === editingTodo.id ? updatedTodo : todo
     );
-    
     saveTodos(updatedTodos);
     setEditingTodo(null);
     setShowForm(false);
     playHaptic();
-    
+    // Cancel previous notification
+    await cancelNotification(Number(editingTodo.id.replace(/\D/g, '').slice(0, 8)));
+    // Schedule new notification if needed
+    if (updatedTodo.notificationTime) {
+      const time = new Date(updatedTodo.notificationTime);
+      if (time > new Date()) {
+        const granted = await requestNotificationPermission();
+        if (granted) scheduleTodoReminder(updatedTodo.id, updatedTodo.title, time);
+        else toast({ title: "Notifications Disabled", description: "Enable notification permissions to receive reminders." });
+      }
+    }
     toast({
       title: "Todo updated! ✨",
       description: `"${updatedTodo.title}" has been updated.`,
@@ -85,12 +113,13 @@ export default function Todos() {
     }
   };
 
-  const handleDeleteTodo = (id: string) => {
+  const handleDeleteTodo = async (id: string) => {
     const todo = todos.find(t => t.id === id);
     const updatedTodos = todos.filter(todo => todo.id !== id);
     saveTodos(updatedTodos);
     playHaptic();
-    
+    // Cancel notification if set
+    await cancelNotification(Number(id.replace(/\D/g, '').slice(0, 8)));
     if (todo) {
       toast({
         title: "Todo deleted 🗑️",

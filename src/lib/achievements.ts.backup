@@ -1,0 +1,343 @@
+export type AchievementCategory = 
+  | 'beginner'
+  | 'focus'
+  | 'planning'
+  | 'consistency'
+  | 'milestone'
+  | 'special';
+
+export interface AchievementReward {
+  xp: number;
+  title?: string;
+  badge?: string;
+}
+
+export interface Achievement {
+  id: string;
+  name: string;
+  description: string;
+  emoji: string;
+  category: AchievementCategory;
+  condition: (stats: UserStats) => boolean;
+  unlocked?: boolean;
+  unlockedAt?: Date;
+  progress?: number;
+  maxProgress?: number;
+  reward: AchievementReward;
+  secret?: boolean;
+  tier?: 1 | 2 | 3;
+  color?: string;
+}
+
+export interface UserStats {
+  totalTodos: number;
+  completedTodos: number;
+  totalFocusTime: number; // in hours
+  planBoardItems: number;
+  streak: number;
+  level: number;
+  xp: number;
+  focusSessions: number;
+  earlyBirdSessions: number; // before 8 AM
+  nightOwlSessions: number; // after 10 PM
+  perfectDays: number; // days with all todos completed
+  longestSession: number; // in minutes
+  weekendSessions: number;
+  totalBreaks: number;
+}
+
+export const ACHIEVEMENTS: Achievement[] = [
+  // Beginner Achievements
+  {
+    id: 'first-todo',
+    name: 'First Steps',
+    description: 'Created your first todo',
+    emoji: '👶',
+    condition: (stats) => stats.totalTodos >= 1,
+  },
+  {
+    id: 'first-focus',
+    name: 'Focus Beginner',
+    description: 'Completed your first focus session',
+    emoji: '🎯',
+    condition: (stats) => stats.focusSessions >= 1,
+  },
+  {
+    id: 'first-plan',
+    name: 'Planning Pioneer',
+    description: 'Created your first plan board item',
+    emoji: '📋',
+    condition: (stats) => stats.planBoardItems >= 1,
+  },
+
+  // Consistency Achievements
+  {
+    id: 'week-streak',
+    name: 'Consistent',
+    description: '7 day activity streak',
+    emoji: '🔥',
+    condition: (stats) => stats.streak >= 7,
+  },
+  {
+    id: 'month-streak',
+    name: 'Dedicated',
+    description: '30 day activity streak',
+    emoji: '💪',
+    condition: (stats) => stats.streak >= 30,
+  },
+  {
+    id: 'quarter-streak',
+    name: 'Unstoppable',
+    description: '90 day activity streak',
+    emoji: '🚀',
+    condition: (stats) => stats.streak >= 90,
+  },
+
+  // Focus Achievements
+  {
+    id: 'focus-master',
+    name: 'Focus Master',
+    description: '10 hours of total focus time',
+    emoji: '🧘',
+    condition: (stats) => stats.totalFocusTime >= 10,
+  },
+  {
+    id: 'focus-legend',
+    name: 'Focus Legend',
+    description: '50 hours of total focus time',
+    emoji: '🏆',
+    condition: (stats) => stats.totalFocusTime >= 50,
+  },
+  {
+    id: 'marathon-session',
+    name: 'Marathon Focus',
+    description: 'Complete a 2-hour focus session',
+    emoji: '🏃',
+    condition: (stats) => stats.longestSession >= 120,
+  },
+
+  // Productivity Achievements
+  {
+    id: 'todo-warrior',
+    name: 'Todo Warrior',
+    description: 'Completed 50 todos',
+    emoji: '⚔️',
+    condition: (stats) => stats.completedTodos >= 50,
+  },
+  {
+    id: 'productivity-guru',
+    name: 'Productivity Guru',
+    description: 'Completed 100 todos',
+    emoji: '⚡',
+    condition: (stats) => stats.completedTodos >= 100,
+  },
+  {
+    id: 'perfect-day',
+    name: 'Perfect Day',
+    description: 'Completed all todos in a day',
+    emoji: '🌟',
+    condition: (stats) => stats.perfectDays >= 1,
+  },
+  {
+    id: 'perfect-week',
+    name: 'Perfect Week',
+    description: '7 perfect days',
+    emoji: '💎',
+    condition: (stats) => stats.perfectDays >= 7,
+  },
+
+  // Time-based Achievements
+  {
+    id: 'early-bird',
+    name: 'Early Bird',
+    description: 'Started focus session before 8 AM',
+    emoji: '🌅',
+    condition: (stats) => stats.earlyBirdSessions >= 1,
+  },
+  {
+    id: 'night-owl',
+    name: 'Night Owl',
+    description: 'Used timer after 10 PM',
+    emoji: '🦉',
+    condition: (stats) => stats.nightOwlSessions >= 1,
+  },
+  {
+    id: 'weekend-warrior',
+    name: 'Weekend Warrior',
+    description: '10 weekend focus sessions',
+    emoji: '🏋️',
+    condition: (stats) => stats.weekendSessions >= 10,
+  },
+
+  // Planning Achievements
+  {
+    id: 'planner',
+    name: 'Master Planner',
+    description: 'Created 10 plan board items',
+    emoji: '📅',
+    condition: (stats) => stats.planBoardItems >= 10,
+  },
+  {
+    id: 'visionary',
+    name: 'Visionary',
+    description: 'Created 25 plan board items',
+    emoji: '🔮',
+    condition: (stats) => stats.planBoardItems >= 25,
+  },
+
+  // Level Achievements
+  {
+    id: 'level-5',
+    name: 'Rising Star',
+    description: 'Reached level 5',
+    emoji: '⭐',
+    condition: (stats) => stats.level >= 5,
+  },
+  {
+    id: 'level-10',
+    name: 'Champion',
+    description: 'Reached level 10',
+    emoji: '🏅',
+    condition: (stats) => stats.level >= 10,
+  },
+  {
+    id: 'level-20',
+    name: 'Legend',
+    description: 'Reached level 20',
+    emoji: '👑',
+    condition: (stats) => stats.level >= 20,
+  },
+
+  // Balance Achievements
+  {
+    id: 'zen-master',
+    name: 'Zen Master',
+    description: 'Took 100 breaks during focus sessions',
+    emoji: '☯️',
+    condition: (stats) => stats.totalBreaks >= 100,
+  },
+  {
+    id: 'balanced',
+    name: 'Balanced Life',
+    description: 'Maintain work-life balance (weekend sessions and rest)',
+    emoji: '⚖️',
+    condition: (stats) => stats.weekendSessions >= 5 && stats.totalBreaks >= 50,
+  },
+];
+
+interface UserProfile {
+  level: number;
+  xp: number;
+  achievements: string[];
+}
+
+const safeJSONParse = <T>(key: string, defaultValue: T): T => {
+  try {
+    const data = localStorage.getItem(key);
+    return data ? JSON.parse(data) : defaultValue;
+  } catch (error) {
+    console.error(`Error parsing ${key} from localStorage:`, error);
+    return defaultValue;
+  }
+};
+
+export function calculateUserStats(): UserStats {
+  const todos = safeJSONParse<any[]>('todo-app-todos', []);
+  const focusSessions = safeJSONParse<any[]>('focusSessions', []);
+  const planBoard = safeJSONParse<any[]>('planBoard', []);
+  const profile = safeJSONParse<UserProfile>('userProfile', { 
+    level: 1, 
+    xp: 0,
+    achievements: [] 
+  });
+
+  const completedTodos = todos.filter((todo: any) => todo.completed);
+  const totalFocusSeconds = focusSessions.reduce((total: number, session: any) => total + session.duration, 0);
+
+  // Calculate streak
+  const sortedSessions = focusSessions
+    .map((s: any) => new Date(s.endTime).toDateString())
+    .sort((a: string, b: string) => new Date(b).getTime() - new Date(a).getTime());
+  
+  const uniqueDays = [...new Set(sortedSessions)];
+  let streak = 0;
+  const today = new Date().toDateString();
+  
+  if (uniqueDays[0] === today || uniqueDays[0] === new Date(Date.now() - 24 * 60 * 60 * 1000).toDateString()) {
+    for (let i = 0; i < uniqueDays.length; i++) {
+      const expectedDate = new Date(Date.now() - i * 24 * 60 * 60 * 1000).toDateString();
+      if (uniqueDays[i] === expectedDate) {
+        streak++;
+      } else {
+        break;
+      }
+    }
+  }
+
+  // Calculate time-based stats
+  const earlyBirdSessions = focusSessions.filter((session: any) => {
+    const hour = new Date(session.startTime).getHours();
+    return hour < 8;
+  }).length;
+
+  const nightOwlSessions = focusSessions.filter((session: any) => {
+    const hour = new Date(session.startTime).getHours();
+    return hour >= 22;
+  }).length;
+
+  const weekendSessions = focusSessions.filter((session: any) => {
+    const day = new Date(session.startTime).getDay();
+    return day === 0 || day === 6; // Sunday or Saturday
+  }).length;
+
+  const longestSession = focusSessions.reduce((max: number, session: any) => {
+    return Math.max(max, session.duration / 60); // in minutes
+  }, 0);
+
+  return {
+    totalTodos: todos.length,
+    completedTodos: completedTodos.length,
+    totalFocusTime: Math.round(totalFocusSeconds / 3600 * 10) / 10,
+    planBoardItems: planBoard.length,
+    streak,
+    level: profile.level || 1,
+    xp: profile.xp || 0,
+    focusSessions: focusSessions.length,
+    earlyBirdSessions,
+    nightOwlSessions,
+    perfectDays: 0, // This would need daily tracking
+    longestSession,
+    weekendSessions,
+    totalBreaks: 0, // This would need break tracking
+  };
+}
+
+export function checkAchievements(): Achievement[] {
+  const stats = calculateUserStats();
+  const savedAchievements = JSON.parse(localStorage.getItem('userAchievements') || '[]');
+  const newUnlocked: Achievement[] = [];
+
+  const updatedAchievements = ACHIEVEMENTS.map(achievement => {
+    const saved = savedAchievements.find((a: any) => a.id === achievement.id);
+    
+    if (saved?.unlocked) {
+      return { ...achievement, unlocked: true, unlockedAt: new Date(saved.unlockedAt) };
+    }
+
+    if (achievement.condition(stats)) {
+      newUnlocked.push(achievement);
+      return { ...achievement, unlocked: true, unlockedAt: new Date() };
+    }
+
+    return achievement;
+  });
+
+  // Save updated achievements
+  const achievementsToSave = updatedAchievements
+    .filter(a => a.unlocked)
+    .map(a => ({ id: a.id, unlocked: true, unlockedAt: a.unlockedAt }));
+  
+  localStorage.setItem('userAchievements', JSON.stringify(achievementsToSave));
+
+  return newUnlocked;
+}

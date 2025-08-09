@@ -45,28 +45,60 @@ export function PlanCard({
     }
   };
 
+  // Sticky note rotation for playful look
+  const rotation = plan.type === 'special-day' ? -2 : plan.type === 'goal' ? 2 : 0;
+
+  // Utility to determine if a color is light or dark
+  function isColorDark(hex: string) {
+    if (!hex) return false;
+    const c = hex.substring(1); // strip #
+    const rgb = parseInt(c, 16);
+    const r = (rgb >> 16) & 0xff;
+    const g = (rgb >> 8) & 0xff;
+    const b = rgb & 0xff;
+    // Perceived brightness
+    return (r * 299 + g * 587 + b * 114) / 1000 < 128;
+  }
+  const textColor = isColorDark(plan.color) ? 'text-white' : 'text-gray-900';
+  const mutedColor = isColorDark(plan.color) ? 'text-gray-100/80' : 'text-gray-700/80';
+
   return (
     <Card 
       className={cn(
-        "relative overflow-hidden transition-all duration-300 hover:shadow-lg group",
+        "relative overflow-visible transition-all duration-300 group rounded-xl border-none shadow-xl",
         plan.isPinned && "ring-2 ring-primary/50 shadow-glow",
         className
       )}
-      style={style}
+      style={{
+        ...style,
+        transform: `rotate(${rotation}deg)`
+      }}
+      draggable
+      onDragStart={e => {
+        e.dataTransfer.setData('text/plain', plan.id);
+        e.currentTarget.classList.add('opacity-50');
+      }}
+      onDragEnd={e => {
+        e.currentTarget.classList.remove('opacity-50');
+      }}
     >
+      {/* Pin or tape effect */}
+      <div className="absolute left-1/2 -top-3 -translate-x-1/2 z-20">
+        <div className="w-8 h-4 bg-yellow-300 rounded-b-lg shadow-tape border border-yellow-400" />
+      </div>
       {/* Background Pattern */}
       <div 
-        className="absolute inset-0 opacity-5"
+        className="absolute inset-0 opacity-80 rounded-xl"
         style={{ backgroundColor: plan.color }}
       />
       
-      <CardContent className="p-4 relative">
+      <CardContent className="p-4 relative z-10">
         <div className="flex items-start justify-between">
           <div className="flex-1 space-y-2">
             {/* Header */}
             <div className="flex items-center gap-2">
               <span className="text-2xl">{plan.emoji}</span>
-              <h3 className="font-semibold text-foreground group-hover:text-primary transition-colors">
+              <h3 className={cn("font-semibold group-hover:text-primary transition-colors", textColor)}>
                 {plan.title}
               </h3>
               {plan.isPinned && (
@@ -76,7 +108,7 @@ export function PlanCard({
             
             {/* Description */}
             {plan.description && (
-              <p className="text-sm text-muted-foreground line-clamp-2">
+              <p className={cn("text-sm line-clamp-2", mutedColor)}>
                 {plan.description}
               </p>
             )}

@@ -1,7 +1,14 @@
 import { LocalNotifications } from '@capacitor/local-notifications';
 import { Haptics, ImpactStyle } from '@capacitor/haptics';
+import { Capacitor } from '@capacitor/core';
 
 export const requestNotificationPermission = async (): Promise<boolean> => {
+  const platform = (Capacitor as any)?.getPlatform ? (Capacitor as any).getPlatform() : 'web';
+  if (platform === 'web') {
+    console.info('Notification permissions not available on web platform');
+    return false;
+  }
+  
   try {
     const permission = await LocalNotifications.requestPermissions();
     return permission.display === 'granted';
@@ -17,6 +24,12 @@ export const scheduleNotification = async (
   body: string,
   scheduledAt: Date
 ): Promise<void> => {
+  const platform = (Capacitor as any)?.getPlatform ? (Capacitor as any).getPlatform() : 'web';
+  if (platform === 'web') {
+    console.info('Skipping notification scheduling on web platform');
+    return;
+  }
+  
   try {
     await LocalNotifications.schedule({
       notifications: [
@@ -38,6 +51,12 @@ export const scheduleNotification = async (
 };
 
 export const cancelNotification = async (id: number): Promise<void> => {
+  const platform = (Capacitor as any)?.getPlatform ? (Capacitor as any).getPlatform() : 'web';
+  if (platform === 'web') {
+    console.info('Skipping notification cancellation on web platform');
+    return;
+  }
+  
   try {
     await LocalNotifications.cancel({ notifications: [{ id }] });
   } catch (error) {
@@ -46,6 +65,13 @@ export const cancelNotification = async (id: number): Promise<void> => {
 };
 
 export const playHaptic = async (style: ImpactStyle = ImpactStyle.Medium): Promise<void> => {
+  const platform = (Capacitor as any)?.getPlatform ? (Capacitor as any).getPlatform() : 'web';
+  if (platform === 'web') {
+    // On web, we can provide a subtle visual feedback instead
+    console.info('Haptic feedback not available on web platform');
+    return;
+  }
+  
   try {
     await Haptics.impact({ style });
   } catch (error) {

@@ -1,5 +1,6 @@
 
 import { useState, useEffect } from 'react';
+import { motion } from 'framer-motion';
 import { Plus, Pin, Calendar, Star, Sparkles, MapPin } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -20,6 +21,7 @@ export interface PlanItem {
   isPinned: boolean;
   emoji: string;
   createdAt: Date;
+  category?: string; // For special days
 }
 
 export function PlanBoard() {
@@ -131,120 +133,171 @@ export function PlanBoard() {
         </div>
 
       {/* Action Buttons */}
-      <div className="flex flex-wrap gap-3 justify-center">
+      <div className="flex flex-col sm:flex-row gap-4 justify-center max-w-md mx-auto px-4 sm:px-0 mt-4">
         <Button 
           onClick={() => setShowPlanForm(true)}
-          className="bg-gradient-primary hover:bg-gradient-primary/90 shadow-playful"
+          className="bg-gradient-primary hover:bg-gradient-primary/90 shadow-playful flex-1 sm:flex-initial text-lg py-5 sm:py-6 rounded-2xl"
+          size="lg"
+          style={{ minHeight: 64, fontWeight: 600 }}
         >
-          <Calendar className="h-4 w-4 mr-2" />
+          <Calendar className="h-6 w-6 mr-2" />
           Add Activity
         </Button>
         <Button 
           onClick={() => setShowSpecialDayForm(true)}
-          className="bg-gradient-accent hover:bg-gradient-accent/90 shadow-playful"
+          className="bg-gradient-accent hover:bg-gradient-accent/90 shadow-playful flex-1 sm:flex-initial text-lg py-5 sm:py-6 rounded-2xl"
           variant="outline"
+          size="lg"
+          style={{ minHeight: 64, fontWeight: 600 }}
         >
-          <Star className="h-4 w-4 mr-2" />
+          <Star className="h-6 w-6 mr-2" />
           Special Day
         </Button>
       </div>
 
       {/* Stats */}
-      <div className="grid grid-cols-3 gap-4">
-        <Card className="bg-gradient-primary/5 border-primary/20">
+      <div className="grid grid-cols-2 sm:grid-cols-3 gap-3 sm:gap-4 mx-auto max-w-3xl">
+        <Card className="bg-gradient-primary/5 border-primary/20 hover:bg-gradient-primary/10 transition-colors">
           <CardContent className="p-4 text-center">
-            <div className="text-2xl font-bold text-primary">{plans.length}</div>
-            <div className="text-xs text-muted-foreground">Total Plans</div>
+            <div className="text-xl sm:text-2xl font-bold text-primary animate-count-up">
+              {plans.length}
+            </div>
+            <div className="text-xs sm:text-sm text-muted-foreground">Total Plans</div>
           </CardContent>
         </Card>
-        <Card className="bg-gradient-accent/5 border-accent/20">
+        <Card className="bg-gradient-accent/5 border-accent/20 hover:bg-gradient-accent/10 transition-colors">
           <CardContent className="p-4 text-center">
-            <div className="text-2xl font-bold text-accent">{pinnedPlans.length}</div>
-            <div className="text-xs text-muted-foreground">Pinned</div>
+            <div className="text-xl sm:text-2xl font-bold text-accent animate-count-up">
+              {pinnedPlans.length}
+            </div>
+            <div className="text-xs sm:text-sm text-muted-foreground">Pinned</div>
           </CardContent>
         </Card>
-        <Card className="bg-gradient-success/5 border-success/20">
+        <Card className="bg-gradient-success/5 border-success/20 hover:bg-gradient-success/10 transition-colors col-span-2 sm:col-span-1">
           <CardContent className="p-4 text-center">
-            <div className="text-2xl font-bold text-success">
+            <div className="text-xl sm:text-2xl font-bold text-success animate-count-up">
               {plans.filter(p => p.type === 'special-day').length}
             </div>
-            <div className="text-xs text-muted-foreground">Special Days</div>
+            <div className="text-xs sm:text-sm text-muted-foreground">Special Days</div>
           </CardContent>
         </Card>
       </div>
 
-      {/* Pinned Plans */}
-      {pinnedPlans.length > 0 && (
-        <div className="space-y-4">
-          <div className="flex items-center gap-2">
-            <Pin className="h-5 w-5 text-primary" />
-            <h3 className="text-lg font-semibold text-primary">Pinned Plans</h3>
-          </div>
-          <div className="grid gap-3">
-            {pinnedPlans.map((plan, index) => (
-              <PlanCard
-                key={plan.id}
-                plan={plan}
-                onTogglePin={() => handleTogglePin(plan.id)}
-                onEdit={() => {
-                  setEditingPlan(plan);
-                  setShowPlanForm(true);
-                }}
-                onDelete={() => handleDeletePlan(plan.id)}
-                className="animate-slide-up"
-                style={{ animationDelay: `${index * 100}ms` }}
-              />
-            ))}
-          </div>
+      {/* Plans Container */}
+      <div className="max-w-3xl mx-auto">
+        {/* Sticky Note Board */}
+        <div
+          className="grid grid-cols-2 sm:grid-cols-3 gap-4 p-1"
+          style={{ minHeight: 300 }}
+          onDragOver={e => e.preventDefault()}
+          onDrop={e => {
+            const draggedId = e.dataTransfer.getData('text/plain');
+            const draggedIndex = plans.findIndex(p => p.id === draggedId);
+            if (draggedIndex === -1) return;
+            const rect = e.currentTarget.getBoundingClientRect();
+            const x = e.clientX - rect.left;
+            const y = e.clientY - rect.top;
+            // Find the closest card to drop position
+            let closestIdx = 0;
+            let minDist = Infinity;
+            e.currentTarget.childNodes.forEach((node, idx) => {
+              if (!(node instanceof HTMLElement)) return;
+              const cx = node.offsetLeft + node.offsetWidth / 2;
+              const cy = node.offsetTop + node.offsetHeight / 2;
+              const dist = Math.hypot(cx - x, cy - y);
+              if (dist < minDist) {
+                minDist = dist;
+                closestIdx = idx;
+              }
+            });
+            if (closestIdx !== draggedIndex) {
+              const newPlans = [...plans];
+              const [dragged] = newPlans.splice(draggedIndex, 1);
+              newPlans.splice(closestIdx, 0, dragged);
+              savePlans(newPlans);
+            }
+          }}
+        >
+          {plans.map((plan, index) => (
+            <PlanCard
+              key={plan.id}
+              plan={plan}
+              onTogglePin={() => handleTogglePin(plan.id)}
+              onEdit={() => {
+                setEditingPlan(plan);
+                setShowPlanForm(true);
+              }}
+              onDelete={() => handleDeletePlan(plan.id)}
+              className="animate-slide-up hover:scale-102 transition-transform"
+              style={{ animationDelay: `${index * 100}ms` }}
+            />
+          ))}
         </div>
-      )}
-
-      {/* All Plans */}
-      {unpinnedPlans.length > 0 && (
-        <div className="space-y-4">
-          <h3 className="text-lg font-semibold">All Plans</h3>
-          <div className="grid gap-3">
-            {unpinnedPlans.map((plan, index) => (
-              <PlanCard
-                key={plan.id}
-                plan={plan}
-                onTogglePin={() => handleTogglePin(plan.id)}
-                onEdit={() => {
-                  setEditingPlan(plan);
-                  setShowPlanForm(true);
-                }}
-                onDelete={() => handleDeletePlan(plan.id)}
-                className="animate-slide-up"
-                style={{ animationDelay: `${(index + pinnedPlans.length) * 100}ms` }}
-              />
-            ))}
-          </div>
-        </div>
-      )}
+      </div>
 
         {/* Empty State */}
         {plans.length === 0 && (
-          <div className="text-center py-16 px-6">
-            <div className="relative inline-block mb-8">
-              <div className="text-8xl mb-4 animate-bounce-in">🎯</div>
-              <div className="absolute -top-4 -right-4 w-8 h-8 bg-gradient-primary rounded-full shadow-pin animate-pulse" />
+          <div className="text-center py-8 sm:py-16 px-4 sm:px-6 mt-4">
+            <div className="relative inline-block mb-8 group">
+              <motion.div 
+                className="text-6xl sm:text-8xl mb-4"
+                animate={{ 
+                  scale: [1, 1.2, 1],
+                  rotate: [0, -10, 10, -10, 0]
+                }}
+                transition={{ 
+                  duration: 2,
+                  repeat: Infinity,
+                  repeatType: "reverse"
+                }}
+              >
+                🎯
+              </motion.div>
+              <motion.div 
+                className="absolute -top-4 -right-4 w-6 sm:w-8 h-6 sm:h-8 bg-gradient-primary rounded-full shadow-pin"
+                animate={{ 
+                  scale: [1, 1.2, 1],
+                  opacity: [0.6, 1, 0.6]
+                }}
+                transition={{ 
+                  duration: 2,
+                  repeat: Infinity
+                }}
+              />
             </div>
             <Card className="max-w-lg mx-auto bg-gradient-card border-primary/20 shadow-playful">
-              <CardContent className="p-8">
-                <h3 className="text-2xl font-display font-bold mb-3 text-primary">Start Planning Your Perfect Days!</h3>
-                <p className="text-muted-foreground mb-6 leading-relaxed">
+              <CardContent className="p-6 sm:p-8">
+                <motion.h3 
+                  className="text-xl sm:text-2xl font-display font-bold mb-3 text-primary"
+                  initial={{ opacity: 0, y: 20 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  transition={{ delay: 0.2 }}
+                >
+                  Start Planning Your Perfect Days!
+                </motion.h3>
+                <motion.p 
+                  className="text-muted-foreground mb-6 leading-relaxed text-sm sm:text-base"
+                  initial={{ opacity: 0, y: 20 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  transition={{ delay: 0.4 }}
+                >
                   Transform your dreams into reality. Create activities, mark special days, and build your ideal life schedule on this beautiful board.
-                </p>
-                <div className="flex gap-3 justify-center flex-wrap">
+                </motion.p>
+                <motion.div 
+                  className="flex gap-3 justify-center flex-wrap"
+                  initial={{ opacity: 0, y: 20 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  transition={{ delay: 0.6 }}
+                >
                   <Button 
                     onClick={() => setShowPlanForm(true)}
-                    className="bg-gradient-primary hover:bg-gradient-primary/90 shadow-playful font-semibold"
+                    className="bg-gradient-primary hover:bg-gradient-primary/90 shadow-playful font-semibold w-full sm:w-auto"
                     size="lg"
                   >
                     <Plus className="h-5 w-5 mr-2" />
                     Add Your First Activity
                   </Button>
-                </div>
+                </motion.div>
               </CardContent>
             </Card>
           </div>
