@@ -43,7 +43,7 @@ export class BackgroundNotificationManager {
       });
       // Listen for resume event (app brought to foreground)
       App.addListener('resume', () => {
-        this.rescheduleAllNotifications();
+        this.reschedulePersistentNotifications();
       });
 
       this.isInitialized = true;
@@ -115,7 +115,7 @@ export class BackgroundNotificationManager {
       id,
       title,
       body,
-      schedule: { at: scheduledAt },
+      schedule: { at: scheduledAt, allowWhileIdle: true },
       sound: 'default',
       actionTypeId: 'CUSTOM',
       extra: { recurring }
@@ -123,6 +123,13 @@ export class BackgroundNotificationManager {
 
     await LocalNotifications.schedule({ notifications: [notification] });
     console.log(`Scheduled custom notification: ${title}`);
+  }
+
+  public async reschedulePersistentNotifications(): Promise<void> {
+      const pending = await LocalNotifications.getPending();
+      if (pending && Array.isArray((pending as any).notifications) && (pending as any).notifications.length > 0) {
+          await LocalNotifications.schedule({ notifications: (pending as any).notifications });
+      }
   }
 }
 

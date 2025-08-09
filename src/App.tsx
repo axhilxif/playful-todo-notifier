@@ -12,6 +12,7 @@ import { useIntroScreen } from "@/hooks/use-intro-screen";
 import { IntroScreen } from "@/components/intro/IntroScreen";
 import { ErrorBoundary } from "@/components/ErrorBoundary";
 import { createNotificationChannel } from "@/lib/notifications";
+import { backgroundService } from "@/lib/background-service";
 import Todos from "./pages/Todos";
 import Timetable from "./pages/Timetable";
 import Timer from "./pages/Timer";
@@ -34,6 +35,7 @@ const AppContent = () => {
         await createNotificationChannel({ id: 'timetable', name: 'Timetable', description: 'Scheduled activity reminders', importance: 5, visibility: 1 });
         await createNotificationChannel({ id: 'achievements', name: 'Achievements', description: 'Unlocked achievements', importance: 3, visibility: 1 });
         await createNotificationChannel({ id: 'level_ups', name: 'Level Ups', description: 'Level up notifications', importance: 3, visibility: 1 });
+        backgroundService.start();
       } catch (error) {
         console.error('Failed to initialize app:', error);
       } finally {
