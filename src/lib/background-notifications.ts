@@ -54,10 +54,13 @@ export class BackgroundNotificationManager {
   }
 
   private async setupBackgroundScheduling(): Promise<void> {
-    // Clear existing pending notifications safely
+    // Clear only break reminders to avoid canceling user-scheduled notifications
     const pending = await LocalNotifications.getPending();
     if (pending && Array.isArray((pending as any).notifications) && (pending as any).notifications.length > 0) {
-      await LocalNotifications.cancel({ notifications: (pending as any).notifications });
+        const breakReminders = (pending as any).notifications.filter((n: any) => n.extra && n.extra.type === 'break');
+        if (breakReminders.length > 0) {
+            await LocalNotifications.cancel({ notifications: breakReminders });
+        }
     }
 
     // Schedule recurring notifications that work in background
@@ -71,7 +74,7 @@ export class BackgroundNotificationManager {
         id: 1000 + i,
         title: '⏰ Break Time!',
         body: 'Time to take a short break and rest your eyes! 👀',
-        schedule: { at: scheduledTime },
+        schedule: { at: scheduledTime, allowWhileIdle: true },
         sound: 'default',
         actionTypeId: 'BREAK_REMINDER',
         extra: { type: 'break' }

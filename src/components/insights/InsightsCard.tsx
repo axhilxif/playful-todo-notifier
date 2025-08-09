@@ -9,6 +9,8 @@ interface InsightData {
   productivity: number;
 }
 
+import { calculateUserStats } from '@/lib/gamification';
+
 export function InsightsCard() {
   const [insights, setInsights] = useState<InsightData>({
     streak: 0,
@@ -19,56 +21,25 @@ export function InsightsCard() {
 
   useEffect(() => {
     const loadInsights = () => {
-      const sessions = JSON.parse(localStorage.getItem('focusSessions') || '[]');
-      const todos = JSON.parse(localStorage.getItem('todos') || '[]');
-      
-      if (sessions.length === 0) return;
+        const stats = calculateUserStats();
+        const sessions = JSON.parse(localStorage.getItem('focusSessions') || '[]');
 
-      // Calculate streak
-      const sortedSessions = sessions
-        .map((s: any) => new Date(s.endTime).toDateString())
-        .sort((a: string, b: string) => new Date(b).getTime() - new Date(a).getTime());
-      
-      const uniqueDays = [...new Set(sortedSessions)];
-      let streak = 0;
-      const today = new Date().toDateString();
-      
-      if (uniqueDays[0] === today || uniqueDays[0] === new Date(Date.now() - 24 * 60 * 60 * 1000).toDateString()) {
-        for (let i = 0; i < uniqueDays.length; i++) {
-          const expectedDate = new Date(Date.now() - i * 24 * 60 * 60 * 1000).toDateString();
-          if (uniqueDays[i] === expectedDate) {
-            streak++;
-          } else {
-            break;
-          }
-        }
-      }
+        const dayTotals: { [key: string]: number } = {};
+        sessions.forEach((session: any) => {
+            const day = new Date(session.endTime).toDateString();
+            dayTotals[day] = (dayTotals[day] || 0) + session.duration;
+        });
+        
+        const bestDay = Object.keys(dayTotals).length > 0 ? Object.entries(dayTotals).reduce((a, b) => 
+            dayTotals[a[0]] > dayTotals[b[0]] ? a : b
+        )[0] : 'No data';
 
-      // Calculate best day
-      const dayTotals: { [key: string]: number } = {};
-      sessions.forEach((session: any) => {
-        const day = new Date(session.endTime).toDateString();
-        dayTotals[day] = (dayTotals[day] || 0) + session.duration;
-      });
-      
-      const bestDay = Object.entries(dayTotals).reduce((a, b) => 
-        dayTotals[a[0]] > dayTotals[b[0]] ? a : b
-      )[0];
-
-      // Calculate total hours
-      const totalSeconds = sessions.reduce((total: number, session: any) => total + session.duration, 0);
-      const totalHours = Math.round((totalSeconds / 3600) * 10) / 10;
-
-      // Calculate productivity (completed todos vs total)
-      const completedTodos = todos.filter((todo: any) => todo.completed).length;
-      const productivity = todos.length > 0 ? Math.round((completedTodos / todos.length) * 100) : 0;
-
-      setInsights({
-        streak,
-        bestDay: bestDay ? new Date(bestDay).toLocaleDateString('en-US', { weekday: 'long', month: 'short', day: 'numeric' }) : 'No data',
-        totalHours,
-        productivity,
-      });
+        setInsights({
+            streak: stats.streak,
+            bestDay: bestDay !== 'No data' ? new Date(bestDay).toLocaleDateString('en-US', { weekday: 'long', month: 'short', day: 'numeric' }) : 'No data',
+            totalHours: stats.totalFocusTime,
+            productivity: stats.totalTodos > 0 ? Math.round((stats.completedTodos / stats.totalTodos) * 100) : 0,
+        });
     };
 
     loadInsights();

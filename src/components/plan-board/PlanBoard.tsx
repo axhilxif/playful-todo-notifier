@@ -10,6 +10,7 @@ import { PlanForm } from './PlanForm';
 import { SpecialDayForm } from './SpecialDayForm';
 import { useToast } from '@/hooks/use-toast';
 import { playHaptic } from '@/lib/notifications';
+import { processUserAction } from '@/lib/gamification';
 
 export interface PlanItem {
   id: string;
@@ -56,9 +57,18 @@ export function PlanBoard() {
     setShowSpecialDayForm(false);
     playHaptic();
     
+    const { levelUp, newLevel, newAchievements } = processUserAction('create-plan');
+
     toast({
       title: "Plan added! ✨",
-      description: `${newPlan.emoji} "${newPlan.title}" has been added to your board.`,
+      description: `${newPlan.emoji} "${newPlan.title}" has been added to your board. +10 XP`,
+    });
+
+    if (levelUp) {
+        toast({ title: 'Level Up!', description: `You reached level ${newLevel}!` });
+    }
+    newAchievements.forEach(ach => {
+        toast({ title: 'Achievement Unlocked!', description: `🎉 ${ach.name}` });
     });
   };
 

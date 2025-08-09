@@ -9,6 +9,7 @@ import { Todo } from '@/types';
 import { getTodos, setTodos } from '@/lib/storage';
 import { playHaptic, requestNotificationPermission, scheduleTodoReminder, cancelNotification } from '@/lib/notifications';
 import { useToast } from '@/hooks/use-toast';
+import { processUserAction } from '@/lib/gamification';
 
 export default function Todos() {
   const [todos, setTodosState] = useState<Todo[]>([]);
@@ -99,17 +100,29 @@ export default function Todos() {
 
   const handleToggleTodo = (id: string) => {
     const updatedTodos = todos.map(todo =>
-      todo.id === id ? { ...todo, completed: !todo.completed } : todo
+      todo.id === id ? { ...todo, completed: !todo.completed, completedAt: new Date() } : todo
     );
     saveTodos(updatedTodos);
     playHaptic();
     
     const todo = todos.find(t => t.id === id);
-    if (todo) {
-      toast({
-        title: todo.completed ? "Todo reopened 🔄" : "Todo completed! 🎉",
-        description: `"${todo.title}" ${todo.completed ? 'is now pending' : 'is done'}.`,
-      });
+    if (todo && !todo.completed) {
+        const { levelUp, newLevel, newAchievements } = processUserAction('complete-todo');
+        toast({
+            title: "Todo completed! 🎉",
+            description: `"${todo.title}" is done. +25 XP`,
+        });
+        if (levelUp) {
+            toast({ title: 'Level Up!', description: `You reached level ${newLevel}!` });
+        }
+        newAchievements.forEach(ach => {
+            toast({ title: 'Achievement Unlocked!', description: `🎉 ${ach.name}` });
+        });
+    } else if (todo) {
+        toast({
+            title: "Todo reopened 🔄",
+            description: `"${todo.title}" is now pending.`,
+        });
     }
   };
 

@@ -44,6 +44,9 @@ export interface UserStats {
   longestSession: number; // in minutes
   weekendSessions: number;
   totalBreaks: number;
+  completedHighPriorityTodos: number;
+  plansCreatedInAdvance: number;
+  completedOnTimeTodos: number;
 }
 
 export const ACHIEVEMENTS: Achievement[] = [
@@ -283,5 +286,42 @@ export const ACHIEVEMENTS: Achievement[] = [
     reward: { xp: 1000, title: 'The Legend', badge: 'legend' },
     color: 'from-orange-500 to-red-500',
     tier: 3,
-  }
+  },
+
+  // Advanced Task Achievements
+  {
+    id: 'high-priority-hero',
+    name: 'Priority Hero',
+    description: 'Complete 10 high-priority todos',
+    emoji: '🦸',
+    category: 'milestone',
+    condition: (stats) => stats.completedHighPriorityTodos >= 10,
+    reward: { xp: 250, title: 'Priority Hero' },
+    color: 'from-red-500 to-rose-500',
+    tier: 2,
+  },
+  {
+    id: 'deadline-demon',
+    name: 'Deadline Demon',
+    description: 'Complete 20 todos on time',
+    emoji: '😈',
+    category: 'milestone',
+    condition: (stats) => stats.completedOnTimeTodos >= 20,
+    reward: { xp: 300, title: 'Deadline Demon' },
+    color: 'from-slate-500 to-gray-600',
+    tier: 2,
+  },
+
+  // Advanced Planning Achievements
+  {
+    id: 'future-architect',
+    name: 'Future Architect',
+    description: 'Create a plan for 7 days in advance',
+    emoji: '🏗️',
+    category: 'planning',
+    condition: (stats) => stats.plansCreatedInAdvance >= 7,
+    reward: { xp: 200, title: 'Future Architect' },
+    color: 'from-sky-500 to-cyan-500',
+    tier: 2,
+  },
 ];

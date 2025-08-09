@@ -18,11 +18,17 @@ export const requestNotificationPermission = async (): Promise<boolean> => {
   }
 };
 
+export const createNotificationChannel = async (channel: { id: string; name: string; description: string; importance: number; visibility: number; }) => {
+    if ((Capacitor as any).getPlatform() !== 'android') return;
+    await LocalNotifications.createChannel(channel);
+};
+
 export const scheduleNotification = async (
   id: number,
   title: string,
   body: string,
-  scheduledAt: Date
+  scheduledAt: Date,
+  channelId?: string
 ): Promise<void> => {
   const platform = (Capacitor as any)?.getPlatform ? (Capacitor as any).getPlatform() : 'web';
   if (platform === 'web') {
@@ -37,11 +43,12 @@ export const scheduleNotification = async (
           id,
           title,
           body,
-          schedule: { at: scheduledAt },
+          schedule: { at: scheduledAt, allowWhileIdle: true },
           sound: 'default',
           attachments: undefined,
           actionTypeId: '',
-          extra: null
+          extra: null,
+          channelId,
         }
       ]
     });
@@ -102,7 +109,8 @@ export const scheduleTodoReminder = async (
     id,
     '📝 Todo Reminder',
     `Don't forget: ${title}`,
-    scheduledAt
+    scheduledAt,
+    'reminders'
   );
 };
 
@@ -117,6 +125,27 @@ export const scheduleTimetableReminder = async (
     id,
     '📅 Scheduled Activity',
     `Time for: ${title}`,
-    scheduledAt
+    scheduledAt,
+    'timetable'
   );
+};
+
+export const scheduleAchievementNotification = async (achievementName: string): Promise<void> => {
+    await scheduleNotification(
+        Math.floor(Math.random() * 100000),
+        '🏆 Achievement Unlocked!',
+        `You've earned the "${achievementName}" achievement!`,
+        new Date(Date.now() + 1000),
+        'achievements'
+    );
+};
+
+export const scheduleLevelUpNotification = async (level: number): Promise<void> => {
+    await scheduleNotification(
+        Math.floor(Math.random() * 100000),
+        '⭐ Level Up!',
+        `Congratulations! You've reached level ${level}!`,
+        new Date(Date.now() + 1000),
+        'level_ups'
+    );
 };

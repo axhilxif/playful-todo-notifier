@@ -17,43 +17,15 @@ import { playHaptic } from '@/lib/notifications';
 import { ACHIEVEMENTS } from '@/lib/achievements';
 import { downloadBackup, handleFileImport } from '@/lib/data-export';
 import { cn } from '@/lib/utils';
+import { loadUserProfile, saveUserProfile, calculateLevel, calculateUserStats, checkAndUnlockAchievements, UserProfile as GamificationProfile } from '@/lib/gamification';
 
-interface UserProfile {
+interface UserProfile extends GamificationProfile {
   name: string;
   bio: string;
   avatar: string;
   joinDate: string;
-  level: number;
-  xp: number;
-  streak: number;
-  achievements: string[];
   favoriteEmoji: string;
 }
-
-
-function calculateStreak(todos: any[]) {
-  const today = new Date();
-  const dailyActivity = new Array(7).fill(false);
-
-  todos.forEach((todo: any) => {
-    if (todo.completed) {
-      const completedDate = new Date(todo.completedAt);
-      const dayDiff = Math.floor((today.getTime() - completedDate.getTime()) / (1000 * 60 * 60 * 24));
-      if (dayDiff < 7) {
-        dailyActivity[dayDiff] = true;
-      }
-    }
-  });
-
-  let streak = 0;
-  for (const active of dailyActivity) {
-    if (active) streak++;
-    else break;
-  }
-  return streak;
-}
-
-// THEME_OPTIONS removed
 
 export default function Profile() {
   const [profile, setProfile] = useState<UserProfile>({
@@ -62,10 +34,11 @@ export default function Profile() {
     avatar: '',
     joinDate: new Date().toISOString(),
     level: 1,
-    xp: 250,
-    streak: 5,
-    achievements: ['first-todo', 'week-streak'],
+    xp: 0,
+    streak: 0,
+    achievements: [],
     favoriteEmoji: '🚀',
+    lastLoginDate: new Date().toISOString(),
   });
   
   const [isEditing, setIsEditing] = useState(false);
@@ -130,66 +103,40 @@ export default function Profile() {
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
-    // Load profile from localStorage
-    const savedProfile = localStorage.getItem('userProfile');
-    if (savedProfile) {
-      const parsed = JSON.parse(savedProfile);
-      setProfile(parsed);
-      setEditData(parsed);
-    }
-
-    // Calculate stats
-    const todos = JSON.parse(localStorage.getItem('todo-app-todos') || '[]');
-    const focusSessions = JSON.parse(localStorage.getItem('focusSessions') || '[]');
-    const planBoard = JSON.parse(localStorage.getItem('planBoard') || '[]');
-
-    const totalFocusSeconds = focusSessions.reduce((total: number, session: any) => total + session.duration, 0);
-
-    // Calculate weekly progress
-    const now = new Date();
-    const weekStart = new Date(now.setDate(now.getDate() - now.getDay()));
-    const weeklyTodos = todos.filter((todo: any) => new Date(todo.createdAt) >= weekStart);
-    const weeklyCompleted = weeklyTodos.filter((todo: any) => todo.completed);
-    const weeklyProgress = weeklyTodos.length ? (weeklyCompleted.length / weeklyTodos.length * 100) : 0;
-
-    // Calculate monthly goals
-    const monthStart = new Date(now.getFullYear(), now.getMonth(), 1);
-    const monthlyPlanItems = planBoard.filter((item: any) => new Date(item.createdAt) >= monthStart);
+    const userProfile = loadUserProfile();
+    const userStats = calculateUserStats();
+    checkAndUnlockAchievements(); // Check for new achievements on load
     
-    // Calculate productive hours
+    setProfile(prev => ({ ...prev, ...userProfile }));
+    setEditData(prev => ({...prev, ...userProfile}));
+
+    const levelInfo = calculateLevel(userProfile.xp);
+
+    const focusSessions = JSON.parse(localStorage.getItem('focusSessions') || '[]');
     const focusHours = focusSessions.reduce((acc: number[], session: any) => {
       const hour = new Date(session.startTime).getHours();
       acc[hour] = (acc[hour] || 0) + session.duration / 3600;
       return acc;
     }, Array(24).fill(0));
 
-    // Calculate skill levels
-    const focusLevel = Math.min(Math.floor(totalFocusSeconds / (3600 * 20)), 100); // 20 hours for max level
-    const planningLevel = Math.min(Math.floor(planBoard.length / 5), 100); // 5 items for a level
-    const consistencyLevel = Math.min(Math.floor(weeklyProgress / 10), 100);
-    const achievementLevel = Math.min(profile.achievements.length * 10, 100);
-
     setStats({
-      totalTodos: todos.length,
-      completedTodos: todos.filter((todo: any) => todo.completed).length,
-      totalFocusTime: Math.round(totalFocusSeconds / 3600 * 10) / 10,
-      planBoardItems: planBoard.length,
-      weeklyProgress,
-      monthlyGoals: monthlyPlanItems.length,
-      avgDailyFocus: Math.round(totalFocusSeconds / (7 * 3600) * 10) / 10,
+      ...userStats,
+      weeklyProgress: 0, // Placeholder, implement if needed
+      monthlyGoals: 0, // Placeholder, implement if needed
+      avgDailyFocus: 0, // Placeholder, implement if needed
       productiveHours: focusHours,
-      weeklyStreak: calculateStreak(todos),
+      weeklyStreak: userStats.streak,
       skillLevels: {
-        focus: focusLevel,
-        planning: planningLevel,
-        consistency: consistencyLevel,
-        achievement: achievementLevel
+        focus: Math.min(userStats.totalFocusTime / 20 * 100, 100),
+        planning: Math.min(userStats.planBoardItems / 5 * 100, 100),
+        consistency: Math.min(userStats.streak / 7 * 100, 100),
+        achievement: Math.min(userProfile.achievements.length / ACHIEVEMENTS.length * 100, 100)
       }
     });
   }, []);
 
   const saveProfile = () => {
-    localStorage.setItem('userProfile', JSON.stringify(editData));
+    saveUserProfile(editData);
     setProfile(editData);
     setIsEditing(false);
     playHaptic();
@@ -205,9 +152,8 @@ export default function Profile() {
     setIsEditing(false);
   };
 
-  const calculateLevel = (xp: number) => Math.floor(xp / 100) + 1;
-  const getXpForNextLevel = (level: number) => level * 100;
-  const getXpProgress = () => (profile.xp % 100);
+  const levelInfo = calculateLevel(profile.xp);
+  const getXpProgress = () => (levelInfo.progress);
 
   // const userStats = calculateUserStats();
   const unlockedAchievements = ACHIEVEMENTS.filter(achievement => 

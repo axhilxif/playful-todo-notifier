@@ -12,6 +12,7 @@ import { getTimerSession, setTimerSession } from '@/lib/storage';
 import { playHaptic } from '@/lib/notifications';
 import { useToast } from '@/hooks/use-toast';
 import { App } from '@capacitor/app';
+import { processUserAction } from '@/lib/gamification';
 
 interface TimerMode {
   id: string;
@@ -161,9 +162,18 @@ export default function Timer() {
       const minutes = Math.floor((currentTime % 3600) / 60);
       const timeText = hours > 0 ? `${hours}h ${minutes}m` : `${minutes}m`;
       
+      const { levelUp, newLevel, newAchievements } = processUserAction('complete-focus-session');
+
       toast({
         title: "Session completed! 🎉",
-        description: `Great work! You focused for ${timeText}.`,
+        description: `Great work! You focused for ${timeText}. +50 XP`,
+      });
+
+      if (levelUp) {
+        toast({ title: 'Level Up!', description: `You reached level ${newLevel}!` });
+      }
+      newAchievements.forEach(ach => {
+        toast({ title: 'Achievement Unlocked!', description: `🎉 ${ach.name}` });
       });
     }
   }, [session, currentTime, toast]);

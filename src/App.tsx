@@ -11,6 +11,7 @@ import { backgroundNotificationManager } from "@/lib/background-notifications";
 import { useIntroScreen } from "@/hooks/use-intro-screen";
 import { IntroScreen } from "@/components/intro/IntroScreen";
 import { ErrorBoundary } from "@/components/ErrorBoundary";
+import { createNotificationChannel } from "@/lib/notifications";
 import Todos from "./pages/Todos";
 import Timetable from "./pages/Timetable";
 import Timer from "./pages/Timer";
@@ -25,13 +26,16 @@ const AppContent = () => {
   const [isInitialized, setIsInitialized] = useState(false);
 
   useEffect(() => {
-    // Initialize background notifications when app loads
     const initializeApp = async () => {
       try {
         await backgroundNotificationManager.initialize();
+        // Create notification channels for Android
+        await createNotificationChannel({ id: 'reminders', name: 'Reminders', description: 'Todo and timetable reminders', importance: 5, visibility: 1 });
+        await createNotificationChannel({ id: 'timetable', name: 'Timetable', description: 'Scheduled activity reminders', importance: 5, visibility: 1 });
+        await createNotificationChannel({ id: 'achievements', name: 'Achievements', description: 'Unlocked achievements', importance: 3, visibility: 1 });
+        await createNotificationChannel({ id: 'level_ups', name: 'Level Ups', description: 'Level up notifications', importance: 3, visibility: 1 });
       } catch (error) {
-        console.error('Failed to initialize background notifications:', error);
-        // Don't let this crash the app
+        console.error('Failed to initialize app:', error);
       } finally {
         setIsInitialized(true);
       }
