@@ -26,7 +26,13 @@ export function useIntroScreen() {
   };
 
   const showIntro = () => {
-    setShouldShowIntro(true);
+    try {
+      localStorage.removeItem('hasSeenIntro'); // Clear the flag to force show intro
+      setShouldShowIntro(true);
+    } catch (error) {
+      console.error('Error clearing intro screen state:', error);
+      setShouldShowIntro(true);
+    }
   };
 
   return {

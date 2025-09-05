@@ -9,7 +9,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { useToast } from '@/hooks/use-toast';
-import { backgroundNotificationManager } from '@/lib/background-notifications';
+import { notificationService } from '@/lib/notification-service';
 
 interface NotificationPreferences {
   enabled: boolean;
@@ -107,11 +107,10 @@ export function NotificationCenter() {
 
   const testNotification = async () => {
     try {
-      await backgroundNotificationManager.scheduleCustomNotification(
-        99999,
+      await notificationService.scheduleImmediateNotification(
         '🔔 Test Notification',
         'This is how your notifications will look!',
-        new Date(Date.now() + 3000)
+        'reminders'
       );
       
       toast({
@@ -132,7 +131,7 @@ export function NotificationCenter() {
       {/* Header */}
       <div className="text-center">
         <div className="flex justify-center mb-4">
-          <div className="p-4 bg-gradient-primary/20 rounded-full">
+          <div className="p-4 bg-primary/20 rounded-xl">
             <Bell className="h-8 w-8 text-primary animate-pulse" />
           </div>
         </div>
@@ -149,7 +148,7 @@ export function NotificationCenter() {
       </div>
 
       {/* Master Controls */}
-      <Card className="border-primary/20 bg-gradient-primary/5">
+      <Card variant="elevated">
         <CardHeader>
           <CardTitle className="flex items-center gap-2">
             <Settings className="h-5 w-5" />
@@ -213,14 +212,14 @@ export function NotificationCenter() {
       </Card>
 
       {/* Break Reminders */}
-      <Card className="border-accent/20 bg-gradient-accent/5">
+      <Card variant="elevated">
         <CardHeader>
           <CardTitle className="flex items-center gap-2">
             <Clock className="h-5 w-5 text-accent" />
             Break Reminders
           </CardTitle>
         </CardHeader>
-        <CardContent className="space-y-4">
+        <CardContent className="space-y-4 p-4">
           <div className="flex items-center justify-between">
             <div>
               <Label className="text-base font-medium">Enable Break Reminders</Label>

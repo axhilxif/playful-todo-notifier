@@ -9,7 +9,7 @@ import { PlanCard } from './PlanCard';
 import { PlanForm } from './PlanForm';
 import { SpecialDayForm } from './SpecialDayForm';
 import { useToast } from '@/hooks/use-toast';
-import { playHaptic } from '@/lib/notifications';
+import { notificationService } from '@/lib/notification-service';
 import { processUserAction } from '@/lib/gamification';
 
 export interface PlanItem {
@@ -23,6 +23,9 @@ export interface PlanItem {
   emoji: string;
   createdAt: Date;
   category?: string; // For special days
+  image?: string; // Base64 image string
+  dueDate?: string; // Optional due date for goals and activities
+  subject?: string; // Subject or area of focus
 }
 
 export function PlanBoard() {
@@ -55,7 +58,7 @@ export function PlanBoard() {
     savePlans(updatedPlans);
     setShowPlanForm(false);
     setShowSpecialDayForm(false);
-    playHaptic();
+    notificationService.playHaptic();
     
     const { levelUp, newLevel, newAchievements } = processUserAction('create-plan');
 
@@ -77,7 +80,7 @@ export function PlanBoard() {
       plan.id === id ? { ...plan, isPinned: !plan.isPinned } : plan
     );
     savePlans(updatedPlans);
-    playHaptic();
+    notificationService.playHaptic();
     
     const plan = plans.find(p => p.id === id);
     if (plan) {
@@ -92,7 +95,7 @@ export function PlanBoard() {
     const plan = plans.find(p => p.id === id);
     const updatedPlans = plans.filter(p => p.id !== id);
     savePlans(updatedPlans);
-    playHaptic();
+    notificationService.playHaptic();
     
     if (plan) {
       toast({
@@ -107,7 +110,7 @@ export function PlanBoard() {
   const unpinnedPlans = plans.filter(plan => !plan.isPinned);
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-primary/5 via-background to-accent/5 relative overflow-hidden">
+    <div className="min-h-screen bg-background relative overflow-hidden">
       {/* Wall texture background */}
       <div className="absolute inset-0 opacity-[0.02]" style={{
         backgroundImage: `radial-gradient(circle at 1px 1px, rgba(0,0,0,0.1) 1px, transparent 0)`,
@@ -115,25 +118,25 @@ export function PlanBoard() {
       }} />
       
       {/* Cork board pins decoration */}
-      <div className="absolute top-4 left-4 w-4 h-4 bg-gradient-accent rounded-full shadow-pin opacity-60" />
-      <div className="absolute top-4 right-4 w-4 h-4 bg-gradient-primary rounded-full shadow-pin opacity-60" />
-      <div className="absolute bottom-4 left-4 w-4 h-4 bg-gradient-success rounded-full shadow-pin opacity-60" />
-      <div className="absolute bottom-4 right-4 w-4 h-4 bg-gradient-warning rounded-full shadow-pin opacity-60" />
+      <div className="absolute top-4 left-4 w-4 h-4 bg-accent rounded-full shadow-md opacity-60" />
+      <div className="absolute top-4 right-4 w-4 h-4 bg-primary rounded-full shadow-md opacity-60" />
+      <div className="absolute bottom-4 left-4 w-4 h-4 bg-success rounded-full shadow-md opacity-60" />
+      <div className="absolute bottom-4 right-4 w-4 h-4 bg-warning rounded-full shadow-md opacity-60" />
       
       <div className="relative space-y-6 p-4">
         {/* Header */}
         <div className="text-center space-y-4 mt-8">
           <div className="flex justify-center">
             <div className="relative">
-              <div className="p-6 bg-gradient-hero rounded-full shadow-playful animate-bounce-in">
+              <div className="p-6 bg-primary rounded-full shadow-lg animate-bounce-in">
                 <Sparkles className="h-12 w-12 text-white animate-pulse" />
               </div>
               {/* Pin decoration */}
-              <div className="absolute -top-2 -right-2 w-6 h-6 bg-gradient-accent rounded-full shadow-pin" />
+              <div className="absolute -top-2 -right-2 w-6 h-6 bg-accent rounded-full shadow-md" />
             </div>
           </div>
           <div className="space-y-3">
-            <h2 className="text-4xl md:text-5xl font-display font-bold bg-gradient-to-r from-primary via-accent to-primary bg-clip-text text-transparent">
+            <h2 className="text-4xl md:text-5xl font-display font-bold text-primary">
               My Plan Board
             </h2>
             <p className="text-muted-foreground text-lg max-w-md mx-auto leading-relaxed">
@@ -146,8 +149,9 @@ export function PlanBoard() {
       <div className="flex flex-col sm:flex-row gap-4 justify-center max-w-md mx-auto px-4 sm:px-0 mt-4">
         <Button 
           onClick={() => setShowPlanForm(true)}
-          className="bg-gradient-primary hover:bg-gradient-primary/90 shadow-playful flex-1 sm:flex-initial text-lg py-5 sm:py-6 rounded-2xl"
+          variant="default"
           size="lg"
+          className="flex-1 sm:flex-initial text-lg py-5 sm:py-6 rounded-2xl"
           style={{ minHeight: 64, fontWeight: 600 }}
         >
           <Calendar className="h-6 w-6 mr-2" />
@@ -155,9 +159,9 @@ export function PlanBoard() {
         </Button>
         <Button 
           onClick={() => setShowSpecialDayForm(true)}
-          className="bg-gradient-accent hover:bg-gradient-accent/90 shadow-playful flex-1 sm:flex-initial text-lg py-5 sm:py-6 rounded-2xl"
           variant="outline"
           size="lg"
+          className="flex-1 sm:flex-initial text-lg py-5 sm:py-6 rounded-2xl"
           style={{ minHeight: 64, fontWeight: 600 }}
         >
           <Star className="h-6 w-6 mr-2" />
@@ -167,7 +171,7 @@ export function PlanBoard() {
 
       {/* Stats */}
       <div className="grid grid-cols-2 sm:grid-cols-3 gap-3 sm:gap-4 mx-auto max-w-3xl">
-        <Card className="bg-gradient-primary/5 border-primary/20 hover:bg-gradient-primary/10 transition-colors">
+        <Card variant="elevated">
           <CardContent className="p-4 text-center">
             <div className="text-xl sm:text-2xl font-bold text-primary animate-count-up">
               {plans.length}
@@ -175,7 +179,7 @@ export function PlanBoard() {
             <div className="text-xs sm:text-sm text-muted-foreground">Total Plans</div>
           </CardContent>
         </Card>
-        <Card className="bg-gradient-accent/5 border-accent/20 hover:bg-gradient-accent/10 transition-colors">
+        <Card variant="elevated">
           <CardContent className="p-4 text-center">
             <div className="text-xl sm:text-2xl font-bold text-accent animate-count-up">
               {pinnedPlans.length}
@@ -183,7 +187,7 @@ export function PlanBoard() {
             <div className="text-xs sm:text-sm text-muted-foreground">Pinned</div>
           </CardContent>
         </Card>
-        <Card className="bg-gradient-success/5 border-success/20 hover:bg-gradient-success/10 transition-colors col-span-2 sm:col-span-1">
+        <Card variant="elevated" className="col-span-2 sm:col-span-1">
           <CardContent className="p-4 text-center">
             <div className="text-xl sm:text-2xl font-bold text-success animate-count-up">
               {plans.filter(p => p.type === 'special-day').length}
@@ -275,7 +279,7 @@ export function PlanBoard() {
                 }}
               />
             </div>
-            <Card className="max-w-lg mx-auto bg-gradient-card border-primary/20 shadow-playful">
+            <Card variant="elevated" className="max-w-lg mx-auto">
               <CardContent className="p-6 sm:p-8">
                 <motion.h3 
                   className="text-xl sm:text-2xl font-display font-bold mb-3 text-primary"
@@ -301,7 +305,7 @@ export function PlanBoard() {
                 >
                   <Button 
                     onClick={() => setShowPlanForm(true)}
-                    className="bg-gradient-primary hover:bg-gradient-primary/90 shadow-playful font-semibold w-full sm:w-auto"
+                    variant="default"
                     size="lg"
                   >
                     <Plus className="h-5 w-5 mr-2" />

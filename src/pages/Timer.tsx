@@ -1,18 +1,24 @@
 import { useState, useEffect, useCallback } from 'react';
-import { Play, Pause, Square, RotateCcw, Trophy, Clock, Zap, Coffee, Music } from 'lucide-react';
+import { Play, Pause, Square, RotateCcw, Trophy, Clock, Zap, Coffee, Music, Check, Plus } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { PageHeader } from '@/components/ui/page-header';
 import { TimerDisplay } from '@/components/timer/TimerDisplay';
 import { TimerStats } from '@/components/timer/TimerStats';
 import { InsightsCard } from '@/components/insights/InsightsCard';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { Sheet, SheetContent, SheetDescription, SheetFooter, SheetHeader, SheetTitle } from '@/components/ui/sheet';
+import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
 import { TimerSession } from '@/types';
 import { getTimerSession, setTimerSession } from '@/lib/storage';
-import { playHaptic } from '@/lib/notifications';
+import { notificationService } from '@/lib/notification-service';
 import { useToast } from '@/hooks/use-toast';
 import { App } from '@capacitor/app';
-import { processUserAction } from '@/lib/gamification';
+import { processUserAction, loadUserProfile, saveUserProfile, calculateUserStats, calculateLevel } from '@/lib/gamification';
+import { getSubjects, addSubject } from '@/lib/subject-storage';
+import { FunTimerFeatures, MOTIVATIONAL_QUOTES, FUN_FEATURES } from '@/components/timer/FunTimerFeatures';
 
 interface TimerMode {
   id: string;
@@ -23,94 +29,104 @@ interface TimerMode {
 }
 
 const TIMER_MODES: TimerMode[] = [
-  { id: 'focus-25', name: 'Focus', duration: 25 * 60, icon: <Play className="h-4 w-4" />, gradient: 'bg-gradient-primary' },
-  { id: 'focus-45', name: 'Deep Focus', duration: 45 * 60, icon: <Zap className="h-4 w-4" />, gradient: 'bg-gradient-accent' },
-  { id: 'break-5', name: 'Short Break', duration: 5 * 60, icon: <Coffee className="h-4 w-4" />, gradient: 'bg-gradient-success' },
-  { id: 'break-15', name: 'Long Break', duration: 15 * 60, icon: <Music className="h-4 w-4" />, gradient: 'bg-gradient-warning' },
+  { id: 'stopwatch', name: 'Stopwatch', duration: 0, icon: <Clock className="h-4 w-4" />, gradient: 'bg-gradient-to-br from-stone-500 to-stone-700' }, // New mode
+  { id: 'focus-25', name: 'Focus', duration: 25 * 60, icon: <Play className="h-4 w-4" />, gradient: 'bg-gradient-to-br from-sky-500 to-blue-600' },
+  { id: 'focus-45', name: 'Deep Focus', duration: 45 * 60, icon: <Zap className="h-4 w-4" />, gradient: 'bg-gradient-to-br from-indigo-500 to-violet-600' },
+  { id: 'break-5', name: 'Short Break', duration: 5 * 60, icon: <Coffee className="h-4 w-4" />, gradient: 'bg-gradient-to-br from-emerald-400 to-green-600' },
+  { id: 'break-15', name: 'Long Break', duration: 15 * 60, icon: <Music className="h-4 w-4" />, gradient: 'bg-gradient-to-br from-amber-400 to-orange-500' },
 ];
 
 export default function Timer() {
   const [session, setSession] = useState<TimerSession | null>(null);
   const [currentTime, setCurrentTime] = useState(0); // seconds
   const [isRunning, setIsRunning] = useState(false);
-  const [selectedMode, setSelectedMode] = useState<TimerMode>(TIMER_MODES[0]);
+  const [selectedMode, setSelectedMode] = useState<TimerMode>(TIMER_MODES[0]); // Set stopwatch as default
+  const [availableSubjects, setAvailableSubjects] = useState<string[]>(getSubjects());
+  const [selectedSubject, setSelectedSubject] = useState<string>(availableSubjects[0] || "General");
   const [dailyStreak, setDailyStreak] = useState(0);
   const [dailyFocusTime, setDailyFocusTime] = useState(0);
   const { toast } = useToast();
+  const [newSubject, setNewSubject] = useState<string>('');
+  const [isAddSubjectDialogOpen, setIsAddSubjectDialogOpen] = useState(false);
 
-  // Load saved session on mount
-  useEffect(() => {
-    const savedSession = getTimerSession();
-    if (savedSession && savedSession.isActive) {
-      setSession(savedSession);
-      setIsRunning(true);
-      
-      // Calculate current time based on saved session
-      const now = new Date();
-      const elapsed = Math.floor((now.getTime() - new Date(savedSession.startTime).getTime()) / 1000);
-      setCurrentTime((savedSession.pausedTime || 0) + elapsed);
-    }
-  }, []);
+  // FunTimerFeatures state
+  const [currentQuote, setCurrentQuote] = useState(MOTIVATIONAL_QUOTES[0]);
+  const [audioContext, setAudioContext] = useState<AudioContext | null>(null);
+  const [oscillator, setOscillator] = useState<OscillatorNode | null>(null);
 
-  // Timer tick
   useEffect(() => {
-    let interval: NodeJS.Timeout;
-    
-    if (isRunning && session) {
-      interval = setInterval(() => {
-        setCurrentTime(prev => prev + 1);
-      }, 1000);
-    }
-    
-    return () => clearInterval(interval);
-  }, [isRunning, session]);
+    setAvailableSubjects(getSubjects());
+  }, [newSubject]);
 
-  // Save session when it changes
-  useEffect(() => {
-    if (session) {
-      setTimerSession(session);
-    }
-  }, [session]);
 
-  // Handle app state changes to pause timer when app goes to background
+  // Calculate and update daily focus time and other stats
   useEffect(() => {
-    const handleAppStateChange = ({ isActive }: { isActive: boolean }) => {
-      if (session && session.isActive && !isActive) {
-        // App went to background - pause timer
-        handlePause();
-        toast({
-          title: "Timer paused ⏸️",
-          description: "Timer stopped when you switched apps",
-        });
-      }
+    const updateStats = () => {
+      const focusSessions = JSON.parse(localStorage.getItem('focusSessions') || '[]') as any[];
+      const today = new Date().toDateString();
+      const dailyTotal = focusSessions.reduce((sum: number, session: any) => {
+        if (new Date(session.date).toDateString() === today) {
+          return sum + session.duration;
+        }
+        return sum;
+      }, 0);
+      setDailyFocusTime(dailyTotal);
+      const stats = calculateUserStats();
+      setDailyStreak(stats.streak);
+
+      console.log('Total Sessions:', stats.focusSessions.length); // Add this line
+
+      // Productivity Pet logic
+      const recentSessions = focusSessions
+        .filter(s => s.endTime && new Date(s.endTime).getTime() > Date.now() - 24 * 3600 * 1000);
+      const happiness = 50 + recentSessions.length * 10 - stats.streak * 2;
     };
 
-    App.addListener('appStateChange', handleAppStateChange);
-    
+    updateStats(); // Call on mount
+
+    // Listen for custom event to update stats
+    window.addEventListener('focusSessionCompleted', updateStats);
+
     return () => {
-      App.removeAllListeners();
+      window.removeEventListener('focusSessionCompleted', updateStats);
     };
-  }, [session]);
+  }, []); // Empty dependency array to run once on mount and clean up on unmount
 
   const handleStart = useCallback(() => {
     const now = new Date();
+    let initialTime = currentTime; // Use current time for resuming
+
+    if (!session) { // If starting a new session
+      if (selectedMode.id === 'stopwatch') {
+        initialTime = 0; // Start from 0 for stopwatch
+        setCurrentTime(0);
+      } else {
+        initialTime = selectedMode.duration;
+        setCurrentTime(selectedMode.duration); // Set currentTime for display
+      }
+    }
+
     const newSession: TimerSession = {
       id: Date.now().toString(),
       startTime: now,
-      duration: currentTime,
+      duration: selectedMode.duration,
       isActive: true,
-      pausedTime: currentTime,
+      pausedTime: initialTime, // Store the initial time (remaining time)
+      subject: selectedSubject,
+      breaks: 0, // Added missing property
+      focusScore: 0, // Added missing property
     };
     
     setSession(newSession);
+    setTimerSession(newSession);
     setIsRunning(true);
-    playHaptic();
+    notificationService.playHaptic();
     
     toast({
       title: "Timer started! ⏰",
       description: "Focus mode activated. Timer will pause if you switch apps.",
     });
-  }, [currentTime, toast]);
+  }, [currentTime, toast, selectedMode, session, selectedSubject]);
 
   const handlePause = useCallback(() => {
     if (session) {
@@ -120,8 +136,9 @@ export default function Timer() {
         pausedTime: currentTime,
       };
       setSession(updatedSession);
+      setTimerSession(updatedSession);
       setIsRunning(false);
-      playHaptic();
+      notificationService.playHaptic();
       
       toast({
         title: "Timer paused ⏸️",
@@ -132,10 +149,17 @@ export default function Timer() {
 
   const handleStop = useCallback(() => {
     if (session) {
+      let actualDuration;
+      if (selectedMode.id === 'stopwatch') {
+        actualDuration = currentTime; // Elapsed time is current time for stopwatch
+      } else {
+        actualDuration = selectedMode.duration - currentTime; // Remaining time for countdown
+      }
+
       const finalSession = {
         ...session,
         endTime: new Date(),
-        duration: currentTime,
+        duration: actualDuration, // Use actual elapsed time
         isActive: false,
       };
       
@@ -143,11 +167,19 @@ export default function Timer() {
       const focusSessions = JSON.parse(localStorage.getItem('focusSessions') || '[]');
       focusSessions.push({
         id: finalSession.id,
-        duration: finalSession.duration,
+        duration: finalSession.duration, // Use actual elapsed time
         date: finalSession.endTime.toDateString(),
         endTime: finalSession.endTime,
+        subject: finalSession.subject,
       });
       localStorage.setItem('focusSessions', JSON.stringify(focusSessions));
+
+      // Increment totalBreaks if it was a break session
+      if (selectedMode.id.startsWith('break-')) {
+        const userProfile = loadUserProfile(); // Load current profile
+        userProfile.totalBreaks = (userProfile.totalBreaks || 0) + 1;
+        saveUserProfile(userProfile); // Save updated profile
+      }
       
       // Dispatch custom event to update stats
       window.dispatchEvent(new CustomEvent('focusSessionCompleted'));
@@ -156,10 +188,10 @@ export default function Timer() {
       setTimerSession(null);
       setCurrentTime(0);
       setIsRunning(false);
-      playHaptic();
+      notificationService.playHaptic();
       
-      const hours = Math.floor(currentTime / 3600);
-      const minutes = Math.floor((currentTime % 3600) / 60);
+      const hours = Math.floor(actualDuration / 3600);
+      const minutes = Math.floor((actualDuration % 3600) / 60);
       const timeText = hours > 0 ? `${hours}h ${minutes}m` : `${minutes}m`;
       
       const { levelUp, newLevel, newAchievements } = processUserAction('complete-focus-session');
@@ -176,20 +208,98 @@ export default function Timer() {
         toast({ title: 'Achievement Unlocked!', description: `🎉 ${ach.name}` });
       });
     }
-  }, [session, currentTime, toast]);
+  }, [session, toast, selectedMode, currentTime]);
 
   const handleReset = useCallback(() => {
     setSession(null);
     setTimerSession(null);
     setCurrentTime(0);
     setIsRunning(false);
-    playHaptic();
+    notificationService.playHaptic();
     
     toast({
       title: "Timer reset 🔄",
       description: "Ready for a new session!",
     });
   }, [toast]);
+
+  // Load saved session on mount
+  useEffect(() => {
+    const savedSession = getTimerSession();
+    if (savedSession) {
+      setSession(savedSession);
+      if (savedSession.isActive) {
+        setIsRunning(true);
+      }
+      const now = new Date();
+      const elapsed = Math.floor((now.getTime() - new Date(savedSession.startTime).getTime()) / 1000);
+      const base = typeof savedSession.pausedTime === 'number' ? savedSession.pausedTime : savedSession.duration;
+      const isStopwatch = savedSession.duration === 0;
+      if (isStopwatch) {
+        setCurrentTime(Math.max(0, base + elapsed));
+      } else {
+        setCurrentTime(Math.max(0, base - elapsed));
+      }
+    }
+  }, []);
+
+  // Countdown/Count-up effect computed from startTime + pausedTime (robust across sleep)
+  useEffect(() => {
+    let interval: NodeJS.Timeout | undefined;
+    if (isRunning && session) {
+      interval = setInterval(() => {
+        const now = new Date();
+        const elapsed = Math.floor((now.getTime() - new Date(session.startTime).getTime()) / 1000);
+        const base = typeof session.pausedTime === 'number' ? session.pausedTime : selectedMode.duration;
+        if (selectedMode.id === 'stopwatch') {
+          setCurrentTime(base + elapsed);
+        } else {
+          const remaining = Math.max(0, base - elapsed);
+          setCurrentTime(remaining);
+          if (remaining <= 0) {
+            handleStop();
+          }
+        }
+      }, 1000);
+    }
+    return () => { if (interval) clearInterval(interval); };
+  }, [isRunning, session, selectedMode, handleStop]);
+
+  // Pause when app goes to background or window loses focus (switch/minimize). Continue through device sleep via time-based calc.
+  useEffect(() => {
+    const unsub = App.addListener('appStateChange', ({ isActive }) => {
+      if (!isActive && isRunning) {
+        // Compute current time snapshot and pause
+        const now = new Date();
+        if (session) {
+          const elapsed = Math.floor((now.getTime() - new Date(session.startTime).getTime()) / 1000);
+          const base = typeof session.pausedTime === 'number' ? session.pausedTime : selectedMode.duration;
+          const newCurrent = selectedMode.id === 'stopwatch' ? (base + elapsed) : Math.max(0, base - elapsed);
+          setCurrentTime(newCurrent);
+          const updated = { ...session, isActive: false, pausedTime: newCurrent } as any;
+          setSession(updated);
+          setTimerSession(updated);
+          setIsRunning(false);
+        } else {
+          handlePause();
+        }
+      }
+    });
+
+    const onBlur = () => {
+      if (isRunning) {
+        // Pause on explicit app switch/minimize
+        handlePause();
+      }
+    };
+
+    window.addEventListener('blur', onBlur);
+
+    return () => {
+      unsub && (unsub as any).remove && (unsub as any).remove();
+      window.removeEventListener('blur', onBlur);
+    };
+  }, [isRunning, handlePause, session, selectedMode]);
 
   const formatTime = (seconds: number) => {
     const hours = Math.floor(seconds / 3600);
@@ -202,79 +312,144 @@ export default function Timer() {
     return `${minutes.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')}`;
   };
 
+  const handleFeatureClick = (featureId: string) => {
+    toast({ title: 'Feature Clicked!', description: `You clicked on ${featureId}` });
+    // Here you would add logic to navigate or open a modal based on the featureId
+  };
+
   return (
     <div className="pb-20 px-4 pt-6">
-      {/* Mobile-friendly header */}
-      <div className="flex flex-col gap-2 mb-6 md:mb-8">
-        <div className="flex items-center gap-3 md:gap-4">
-          <Play className="h-7 w-7 text-primary shrink-0" />
-          <div className="flex-1">
-            <h1 className="text-xl md:text-2xl font-bold leading-tight">Focus Timer</h1>
-            <div className="text-sm text-muted-foreground leading-tight">Stay productive and track your focus time</div>
-          </div>
+      <PageHeader
+        title="Focus Timer"
+        subtitle="Stay productive and track your focus time"
+        icon={<Play className="h-6 w-6" />}
+      />
+      <div className="flex flex-wrap gap-3 mb-6">
+        <div className="flex items-center gap-2 bg-warning/20 rounded-xl px-4 py-2 text-warning text-sm font-medium shadow-sm">
+          <Trophy className="h-4 w-4" />
+          {dailyStreak} day streak
         </div>
-        <div className="flex flex-wrap gap-3 mt-2">
-          <div className="flex items-center gap-2 bg-warning/10 rounded-full px-3 py-1 text-warning text-xs font-medium">
-            <Trophy className="h-4 w-4" />
-            {dailyStreak} day streak
-          </div>
-          <div className="flex items-center gap-2 bg-primary/10 rounded-full px-3 py-1 text-primary text-xs font-medium">
-            <Clock className="h-4 w-4" />
-            {Math.round(dailyFocusTime / 60)} mins today
-          </div>
+        <div className="flex items-center gap-2 bg-primary/20 rounded-xl px-4 py-2 text-primary text-sm font-medium shadow-sm">
+          <Clock className="h-4 w-4" />
+          {Math.round(dailyFocusTime / 60)} mins today
         </div>
       </div>
 
-      {/* Timer Mode Selection - horizontal scroll on mobile */}
-      <div className="flex gap-3 overflow-x-auto pb-2 hide-scrollbar mb-6 md:grid md:grid-cols-4 md:gap-4 md:overflow-visible md:pb-0">
-        {TIMER_MODES.map(mode => (
-          <Button
-            key={mode.id}
-            variant="outline"
-            className={cn(
-              "h-20 min-w-[7.5rem] flex-col gap-2 transition-all duration-300 flex-shrink-0 md:min-w-0",
-              selectedMode.id === mode.id ? 
-                `${mode.gradient} text-white shadow-glow` : 
-                "hover:bg-muted"
-            )}
-            onClick={() => {
-              setSelectedMode(mode);
-              setCurrentTime(mode.duration);
-              playHaptic();
-            }}
-          >
-            {mode.icon}
-            <span className="text-base font-medium">{mode.name}</span>
-            <span className="text-xs opacity-80">{mode.duration / 60}min</span>
-          </Button>
-        ))}
-      </div>
+      
+
+      {/* Subject Selection */}
+      <Card className="mb-6">
+        <CardHeader className='p-4'>
+          <CardTitle className="text-lg flex items-center gap-2">
+            📚 Subject Selection
+          </CardTitle>
+        </CardHeader>
+        <CardContent className="p-4">
+          <div className="space-y-4">
+            <Select 
+              value={selectedSubject} 
+              onValueChange={(val) => {
+                if (val === '__add__') {
+                  setIsAddSubjectDialogOpen(true);
+                  return;
+                }
+                setSelectedSubject(val);
+              }}
+              disabled={isRunning}
+            >
+              <SelectTrigger className="w-full">
+                <SelectValue placeholder="Select a subject" />
+              </SelectTrigger>
+              <SelectContent>
+                {availableSubjects.map((subject) => (
+                  <SelectItem key={subject} value={subject}>
+                    {subject}
+                  </SelectItem>
+                ))}
+                <SelectItem value="__add__">
+                  <div className="flex items-center gap-2">
+                    <Plus className="h-4 w-4" />
+                    Add new subject
+                  </div>
+                </SelectItem>
+              </SelectContent>
+            </Select>
+
+          {/* Add Subject Sheet */}
+          <Sheet open={isAddSubjectDialogOpen} onOpenChange={setIsAddSubjectDialogOpen}>
+            <SheetContent side="bottom" className="space-y-4">
+              <SheetHeader>
+                <SheetTitle>Add a new subject</SheetTitle>
+                <SheetDescription>Type the subject name to add it to your list.</SheetDescription>
+              </SheetHeader>
+              <div className="space-y-3">
+                <Input
+                  placeholder="e.g., Mathematics"
+                  value={newSubject}
+                  onChange={(e) => setNewSubject(e.target.value)}
+                  disabled={isRunning}
+                />
+              </div>
+              <SheetFooter className="flex gap-2">
+                <Button
+                  type="button"
+                  variant="ghost"
+                  onClick={() => setIsAddSubjectDialogOpen(false)}
+                >
+                  Cancel
+                </Button>
+                <Button
+                  type="button"
+                  onClick={() => {
+                    const name = newSubject.trim();
+                    if (!name) {
+                      toast({ title: 'Subject name required', description: 'Please enter a subject name.' });
+                      return;
+                    }
+                    addSubject(name);
+                    setSelectedSubject(name);
+                    setNewSubject('');
+                    setIsAddSubjectDialogOpen(false);
+                    toast({ title: 'Subject added', description: `Added "${name}" to your subjects.` });
+                  }}
+                >
+                  Add
+                </Button>
+              </SheetFooter>
+            </SheetContent>
+          </Sheet>
+
+          </div>
+        </CardContent>
+      </Card>
 
       {/* Main Timer Card */}
       <Card className={cn(
-        "mb-6 border-2 transition-all duration-500",
+        "mb-6 rounded-2xl shadow-lg transition-all duration-500",
         isRunning ? selectedMode.gradient : "bg-card",
-        isRunning ? "border-transparent shadow-glow" : "border-border"
+        isRunning ? "border-transparent shadow-lg animate-pulse ring-1 ring-white/20" : "border-border"
       )}>
-        <CardHeader className="text-center">
+        <CardHeader className="text-center p-4">
           <CardTitle className={cn(
-            "text-2xl font-bold transition-colors",
+            "text-3xl font-bold transition-colors",
             isRunning ? "text-white" : "text-primary"
           )}>
             {session ? 
               (isRunning ? 
-                `🎯 ${selectedMode.name} Mode` : 
+                `🎯 Focus Mode` : 
                 '⏸️ Paused') : 
               '⏰ Ready to Focus'
             }
           </CardTitle>
         </CardHeader>
-        <CardContent className="text-center space-y-6">
+        <CardContent className="flex flex-col items-center justify-center space-y-6 p-6">
           {/* Timer Display */}
-          <TimerDisplay 
-            time={formatTime(currentTime)} 
-            isRunning={isRunning} 
-            mode={selectedMode.name} 
+          <TimerDisplay
+            time={formatTime(currentTime)}
+            isRunning={isRunning}
+            mode={selectedMode.name}
+            totalTime={selectedMode.duration}
+            remainingTime={currentTime}
           />
           
           {/* Control Buttons */}
@@ -283,7 +458,7 @@ export default function Timer() {
                 <Button
                   onClick={handleStart}
                   size="lg"
-                  className="bg-gradient-primary hover:bg-gradient-primary/90 shadow-primary px-8 animate-pulse-glow"
+                  variant="default"
                 >
                 <Play className="h-5 w-5 mr-2" />
                 Start Timer
@@ -293,9 +468,9 @@ export default function Timer() {
                 {isRunning ? (
                   <Button
                     onClick={handlePause}
-                    size="lg"
+                    size="default"
                     variant="outline"
-                    className="px-6"
+                    className="px-4"
                   >
                     <Pause className="h-5 w-5 mr-2" />
                     Pause
@@ -303,8 +478,8 @@ export default function Timer() {
                 ) : (
                   <Button
                     onClick={handleStart}
-                    size="lg"
-                    className="bg-gradient-primary hover:bg-gradient-primary/90 px-6 shadow-primary"
+                    size="default"
+                    variant="default"
                   >
                     <Play className="h-5 w-5 mr-2" />
                     Resume
@@ -313,9 +488,9 @@ export default function Timer() {
                 
                 <Button
                   onClick={handleStop}
-                  size="lg"
+                  size="default"
                   variant="outline"
-                  className="px-6"
+                  className="px-4"
                 >
                   <Square className="h-5 w-5 mr-2" />
                   Stop
@@ -323,9 +498,9 @@ export default function Timer() {
                 
                 <Button
                   onClick={handleReset}
-                  size="lg"
+                  size="default"
                   variant="outline"
-                  className="px-6"
+                  className="px-4"
                 >
                   <RotateCcw className="h-5 w-5 mr-2" />
                   Reset
@@ -336,20 +511,39 @@ export default function Timer() {
         </CardContent>
       </Card>
 
-      {/* Timer Info Card */}
-      <Card className="mb-6">
-        <CardHeader>
-          <CardTitle className="text-lg flex items-center gap-2">
-            ℹ️ How it Works
-          </CardTitle>
-        </CardHeader>
-        <CardContent className="space-y-3 text-sm text-muted-foreground">
-          <p>🎯 <strong>Focus Mode:</strong> Timer automatically pauses when you switch to another app</p>
-          <p>😴 <strong>Sleep Friendly:</strong> Timer continues running when your device sleeps</p>
-          <p>📱 <strong>Background Safe:</strong> No background processing - stays paused until you return</p>
-          <p>⏰ <strong>Session Tracking:</strong> Keep track of your productive focus sessions</p>
-        </CardContent>
-      </Card>
+      {/* Timer Modes */}
+      <div className="flex flex-nowrap overflow-x-auto gap-3 mb-6 pb-2">
+        {TIMER_MODES.map(mode => (
+          <Button
+            key={mode.id}
+            variant={selectedMode.id === mode.id ? "default" : "outline"}
+            disabled={isRunning}
+            className="flex-shrink-0"
+            onClick={() => {
+              setSelectedMode(mode);
+              setCurrentTime(mode.duration);
+              notificationService.playHaptic();
+            }}
+          >
+            <div className="flex items-center gap-2">
+              {mode.icon}
+              <div className="flex flex-col items-start leading-tight">
+                <span className="text-sm font-medium flex items-center gap-1">
+                  {mode.name}
+                  {selectedMode.id === mode.id && <Check className="h-4 w-4" />}
+                </span>
+                <span className="text-xs opacity-85">{Math.round(mode.duration / 60)} min</span>
+              </div>
+            </div>
+          </Button>
+        ))}
+      </div>
+
+      {/* Fun Timer Features */}
+      <FunTimerFeatures
+        currentQuote={currentQuote}
+        onFeatureClick={handleFeatureClick}
+      />
 
       {/* Stats Card */}
       <TimerStats />

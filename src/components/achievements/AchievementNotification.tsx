@@ -5,7 +5,7 @@ import { Trophy, X, Star } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Achievement } from '@/lib/achievements';
 import { useToast } from '@/hooks/use-toast';
-import { playHaptic } from '@/lib/notifications';
+import { notificationService } from '@/lib/notification-service';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Progress } from '@/components/ui/progress';
 import { calculateLevel } from '@/lib/level-system';
@@ -36,7 +36,7 @@ export function AchievementNotification({
     : 0;
 
   useEffect(() => {
-    playHaptic();
+    notificationService.playHaptic();
     
     const timer = setTimeout(() => {
       onDismiss();
@@ -64,12 +64,12 @@ export function AchievementNotification({
       }}
       exit={{ opacity: 0, scale: 0.8, y: -50 }}
     >
-      <Card className="bg-gradient-warning/95 backdrop-blur-sm border-warning/30 shadow-glow max-w-sm">
+      <Card className="max-w-sm bg-warning backdrop-blur-sm border-warning/30 shadow-lg">
         <CardContent className="p-4">
           <div className="flex items-start justify-between gap-3">
             <div className="flex items-center gap-3">
               <motion.div 
-                className="w-12 h-12 bg-white/20 rounded-full flex items-center justify-center"
+                className="w-12 h-12 bg-background/20 rounded-xl flex items-center justify-center"
                 animate={{ 
                   scale: [1, 1.2, 1],
                   rotate: [0, -10, 10, -10, 0]
@@ -88,7 +88,7 @@ export function AchievementNotification({
                   <Trophy className="h-4 w-4 text-warning-foreground" />
                   <Badge 
                     variant="secondary" 
-                    className="bg-white/20 text-warning-foreground text-xs animate-pulse"
+                    className="bg-background/20 text-warning-foreground text-sm animate-pulse rounded-lg"
                   >
                     Achievement Unlocked!
                   </Badge>
@@ -123,7 +123,7 @@ export function AchievementNotification({
                     </div>
                     <Progress 
                       value={levelProgress} 
-                      className="h-1 bg-white/20" 
+                      className="h-2 bg-background/20 rounded-full" 
                     />
                     <div className="text-xs mt-1 text-warning-foreground/80">
                       Level {levelInfo.level} - {levelInfo.title}
@@ -135,7 +135,7 @@ export function AchievementNotification({
             <Button
               size="icon"
               variant="ghost"
-              className="text-warning-foreground/80 hover:text-warning-foreground hover:bg-white/20"
+              className="text-warning-foreground/80 hover:text-warning-foreground hover:bg-white/20 rounded-full"
               onClick={onDismiss}
             >
               <X className="h-4 w-4" />

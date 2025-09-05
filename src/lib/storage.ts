@@ -1,4 +1,5 @@
 import { User, Todo, TimeSlot, NotificationSettings, TimerSession } from '@/types';
+import { PlanItem } from '@/components/plan-board/PlanBoard';
 
 const STORAGE_KEYS = {
   USER: 'todo-app-user',
@@ -52,6 +53,16 @@ export const getSettings = (): NotificationSettings => {
 
 export const setSettings = (settings: NotificationSettings): void => {
   localStorage.setItem(STORAGE_KEYS.SETTINGS, JSON.stringify(settings));
+};
+
+// Plan board storage
+export const getPlans = (): PlanItem[] => {
+  const stored = localStorage.getItem('planBoard'); // Assuming 'planBoard' is the key
+  return stored ? JSON.parse(stored) : [];
+};
+
+export const setPlans = (plans: PlanItem[]): void => {
+  localStorage.setItem('planBoard', JSON.stringify(plans));
 };
 
 // Timer storage

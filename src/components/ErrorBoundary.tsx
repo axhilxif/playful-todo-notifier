@@ -51,7 +51,7 @@ export class ErrorBoundary extends Component<Props, State> {
             </CardHeader>
             <CardContent className="space-y-4">
               <p className="text-sm text-muted-foreground text-center">
-                The app encountered an unexpected error. This might be due to a temporary issue.
+                The app encountered an unexpected error. This might be due to a temporary issue. Contact dev at muhammedadhil856@gmail.com
               </p>
               
               {process.env.NODE_ENV === 'development' && this.state.error && (
@@ -74,6 +74,7 @@ export class ErrorBoundary extends Component<Props, State> {
                 </Button>
                 <Button 
                   onClick={this.handleReload}
+                  variant="default"
                   className="flex-1"
                 >
                   <RefreshCw className="h-4 w-4 mr-2" />

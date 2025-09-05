@@ -1,6 +1,6 @@
 
 import { Capacitor } from '@capacitor/core';
-import { scheduleAllReminders } from './notification-scheduler';
+import { notificationService } from './notification-service';
 import { persistentJobScheduler } from './persistent-job-scheduler';
 
 class BackgroundService {
@@ -20,12 +20,18 @@ class BackgroundService {
 
     persistentJobScheduler.register('reminderScheduler', 5 * 60 * 1000, async () => {
       console.log('Running reminder scheduler job');
-      await scheduleAllReminders();
+      await notificationService.scheduleAllReminders();
+    });
+
+    persistentJobScheduler.register('aiSuggestionScheduler', 24 * 60 * 60 * 1000, async () => {
+      console.log('Running AI suggestion scheduler job');
+      await notificationService.scheduleAISuggestionNotification();
     });
   }
 
   stop() {
     persistentJobScheduler.unregister('reminderScheduler');
+    persistentJobScheduler.unregister('aiSuggestionScheduler');
   }
 }
 

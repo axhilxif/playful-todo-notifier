@@ -1,18 +1,20 @@
+
 import { cn } from "@/lib/utils";
-import { CheckSquare, Calendar, Timer, Settings, User, Sparkles } from "lucide-react";
+import { CheckSquare, Calendar, Timer, Settings, User, Sparkles, Brain, PawPrint } from "lucide-react";
 import { NavLink } from "react-router-dom";
 
 const navItems = [
-  { to: "/", icon: CheckSquare, label: "Todos" },
+  { to: "/todos", icon: CheckSquare, label: "Todos" },
   { to: "/timetable", icon: Calendar, label: "Schedule" },
-  { to: "/timer", icon: Timer, label: "Timer" },
+  { to: "/", icon: Timer, label: "Timer" },
+  { to: "/insights", icon: Brain, label: "Insights" },
+  { to: "/pet", icon: PawPrint, label: "Pet" }, // New Pet link
   { to: "/profile", icon: User, label: "Profile" },
-  { to: "/settings", icon: Settings, label: "Settings" },
 ];
 
 export function BottomNav() {
   return (
-    <nav className="fixed bottom-0 left-0 right-0 bg-gradient-card backdrop-blur-lg border-t border-primary/20 z-50 shadow-primary">
+    <nav className="fixed bottom-0 left-0 right-0 bg-card backdrop-blur-lg border-t border-border z-50 shadow-lg">
       <div className="flex items-center justify-around h-16 px-2">
         {navItems.map(({ to, icon: Icon, label }) => (
           <NavLink
@@ -22,8 +24,8 @@ export function BottomNav() {
               cn(
                 "flex flex-col items-center justify-center p-3 rounded-xl transition-all duration-300 min-w-0 flex-1 relative",
                 isActive
-                  ? "text-primary bg-gradient-primary/10 shadow-glow border border-primary/20 animate-bounce-in"
-                  : "text-muted-foreground hover:text-primary hover:bg-gradient-primary/5 hover:scale-105"
+                  ? "text-primary bg-primary/10 shadow-md"
+                  : "text-muted-foreground hover:text-primary hover:bg-primary/5"
               )
             }
           >

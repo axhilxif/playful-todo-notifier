@@ -7,9 +7,10 @@ import { TodoCard } from '@/components/todos/TodoCard';
 import { TodoForm } from '@/components/todos/TodoForm';
 import { Todo } from '@/types';
 import { getTodos, setTodos } from '@/lib/storage';
-import { playHaptic, requestNotificationPermission, scheduleTodoReminder, cancelNotification } from '@/lib/notifications';
+import { notificationService } from '@/lib/notification-service';
 import { useToast } from '@/hooks/use-toast';
 import { processUserAction } from '@/lib/gamification';
+import { cn } from '@/lib/utils';
 
 export default function Todos() {
   const [todos, setTodosState] = useState<Todo[]>([]);
@@ -22,17 +23,7 @@ export default function Todos() {
   useEffect(() => {
     const storedTodos = getTodos();
     setTodosState(storedTodos);
-    // On app launch, re-schedule all pending todo reminders
-    storedTodos.forEach(todo => {
-      if (todo.notificationTime) {
-        const time = new Date(todo.notificationTime);
-        if (time > new Date()) {
-          requestNotificationPermission().then(granted => {
-            if (granted) scheduleTodoReminder(todo.id, todo.title, time);
-          });
-        }
-      }
-    });
+    
   }, []);
 
   const saveTodos = (newTodos: Todo[]) => {
@@ -50,13 +41,13 @@ export default function Todos() {
     const updatedTodos = [newTodo, ...todos];
     saveTodos(updatedTodos);
     setShowForm(false);
-    playHaptic();
+    notificationService.playHaptic();
     // Schedule notification if needed
     if (newTodo.notificationTime) {
       const time = new Date(newTodo.notificationTime);
       if (time > new Date()) {
-        const granted = await requestNotificationPermission();
-        if (granted) scheduleTodoReminder(newTodo.id, newTodo.title, time);
+        const granted = await notificationService.requestPermissions();
+        if (granted) notificationService.scheduleTodoReminder(newTodo);
         else toast({ title: "Notifications Disabled", description: "Enable notification permissions to receive reminders." });
       }
     }
@@ -80,15 +71,15 @@ export default function Todos() {
     saveTodos(updatedTodos);
     setEditingTodo(null);
     setShowForm(false);
-    playHaptic();
+    notificationService.playHaptic();
     // Cancel previous notification
-    await cancelNotification(Number(editingTodo.id.replace(/\D/g, '').slice(0, 8)));
+    await notificationService.cancel(editingTodo.id);
     // Schedule new notification if needed
     if (updatedTodo.notificationTime) {
       const time = new Date(updatedTodo.notificationTime);
       if (time > new Date()) {
-        const granted = await requestNotificationPermission();
-        if (granted) scheduleTodoReminder(updatedTodo.id, updatedTodo.title, time);
+        const granted = await notificationService.requestPermissions();
+        if (granted) notificationService.scheduleTodoReminder(updatedTodo);
         else toast({ title: "Notifications Disabled", description: "Enable notification permissions to receive reminders." });
       }
     }
@@ -103,7 +94,7 @@ export default function Todos() {
       todo.id === id ? { ...todo, completed: !todo.completed, completedAt: new Date() } : todo
     );
     saveTodos(updatedTodos);
-    playHaptic();
+    notificationService.playHaptic();
     
     const todo = todos.find(t => t.id === id);
     if (todo && !todo.completed) {
@@ -130,9 +121,10 @@ export default function Todos() {
     const todo = todos.find(t => t.id === id);
     const updatedTodos = todos.filter(todo => todo.id !== id);
     saveTodos(updatedTodos);
-    playHaptic();
+    notificationService.playHaptic();
+    notificationService.playHaptic();
     // Cancel notification if set
-    await cancelNotification(Number(id.replace(/\D/g, '').slice(0, 8)));
+    await notificationService.cancel(id);
     if (todo) {
       toast({
         title: "Todo deleted 🗑️",
@@ -161,10 +153,10 @@ export default function Todos() {
         action={
             <Button 
               onClick={() => setShowForm(true)}
-              className="bg-gradient-primary hover:bg-gradient-primary/90 shadow-primary animate-pulse-glow"
+              variant="default"
             >
             <Plus className="h-4 w-4 mr-2" />
-            Add Todo
+            Add 
           </Button>
         }
       />
@@ -177,7 +169,7 @@ export default function Todos() {
             placeholder="Search todos..."
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
-            className="pl-10"
+            className={cn("pl-10")}
           />
         </div>
         <Button
@@ -198,7 +190,7 @@ export default function Todos() {
       {/* Filter indicator */}
       {filterPriority !== 'all' && (
         <div className="mb-4">
-          <div className="inline-flex items-center px-3 py-1 rounded-full bg-primary/10 text-primary text-sm">
+          <div className="inline-flex items-center px-3 py-1 rounded-xl bg-primary/10 text-primary text-sm">
             Showing {filterPriority} priority todos
           </div>
         </div>
@@ -220,7 +212,7 @@ export default function Todos() {
             {!searchQuery && filterPriority === 'all' && (
               <Button 
                 onClick={() => setShowForm(true)}
-                className="bg-gradient-primary hover:bg-gradient-primary/90"
+                variant="default"
               >
                 <Plus className="h-4 w-4 mr-2" />
                 Add Your First Todo

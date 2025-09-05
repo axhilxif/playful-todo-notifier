@@ -34,8 +34,9 @@ export function TimeSlotCard({ timeSlot, onEdit, onDelete, className, style }: T
 
   return (
     <Card 
+      variant="elevated" 
       className={cn(
-        "transition-all duration-300 hover:shadow-playful hover:scale-[1.02] cursor-pointer border-l-4",
+        "cursor-pointer transition-all duration-300 hover:scale-[1.02] border-l-4",
         className
       )}
       style={{ 
@@ -51,22 +52,22 @@ export function TimeSlotCard({ timeSlot, onEdit, onDelete, className, style }: T
             {/* Header */}
             <div className="flex items-center gap-3 mb-3">
               <div 
-                className="w-4 h-4 rounded-full flex-shrink-0"
+                className="w-5 h-5 rounded-full flex-shrink-0 shadow-sm"
                 style={{ backgroundColor: timeSlot.color }}
               />
-              <h3 className="font-semibold text-lg">{timeSlot.title}</h3>
+              <h3 className="font-semibold text-xl">{timeSlot.title}</h3>
             </div>
 
             {/* Time info */}
             <div className="flex items-center gap-4 mb-3 text-sm text-muted-foreground">
               <div className="flex items-center gap-1">
-                <Clock className="h-4 w-4" />
+                <Clock className="h-5 w-5" />
                 <span>{formatTime(timeSlot.startTime)} - {formatTime(timeSlot.endTime)}</span>
               </div>
               
               {timeSlot.notifications && (
                 <div className="flex items-center gap-1 text-primary">
-                  <Bell className="h-4 w-4" />
+                  <Bell className="h-5 w-5" />
                   <span>{timeSlot.reminderBefore}min before</span>
                 </div>
               )}
@@ -74,13 +75,13 @@ export function TimeSlotCard({ timeSlot, onEdit, onDelete, className, style }: T
 
             {/* Days */}
             <div className="flex items-center gap-2 mb-3">
-              <Calendar className="h-4 w-4 text-muted-foreground" />
+              <Calendar className="h-5 w-5 text-muted-foreground" />
               <div className="flex flex-wrap gap-1">
                 {timeSlot.days.map(day => (
                   <Badge 
                     key={day} 
                     variant="secondary" 
-                    className="text-xs px-2 py-0.5"
+                    className="text-sm px-3 py-1"
                   >
                     {dayNames[day]}
                   </Badge>
@@ -115,16 +116,16 @@ export function TimeSlotCard({ timeSlot, onEdit, onDelete, className, style }: T
             <DropdownMenuTrigger asChild>
               <Button
                 variant="ghost"
-                size="sm"
+                size="icon"
                 className={cn(
-                  "h-8 w-8 p-0 transition-all duration-200",
+                  "h-10 w-10 p-0 transition-all duration-200",
                   isHovered ? "opacity-100" : "opacity-0 sm:opacity-60"
                 )}
               >
                 <MoreVertical className="h-4 w-4" />
               </Button>
             </DropdownMenuTrigger>
-            <DropdownMenuContent align="end" className="w-48">
+            <DropdownMenuContent align="end" className="w-56">
               <DropdownMenuItem onClick={onEdit} className="cursor-pointer">
                 <Edit className="h-4 w-4 mr-2" />
                 Edit Schedule

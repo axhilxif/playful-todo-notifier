@@ -47,6 +47,37 @@ export interface UserStats {
   completedHighPriorityTodos: number;
   plansCreatedInAdvance: number;
   completedOnTimeTodos: number;
+  achievements: string[]; // IDs of unlocked achievements
+  productiveHours: number[]; // 24-hour array of focus time per hour
+  focusSessionsPerDay: number[]; // Array of focus sessions count per day
+  lastActive: Date; // Last time user was active
+  weeklyStats: {
+    completedTodos: number;
+    focusTime: number;
+    streak: number;
+  };
+  averages: {
+    dailyFocusTime: number;
+    dailyCompletedTodos: number;
+    sessionsPerDay: number;
+  };
+  timerSessions: Array<{
+    id: string;
+    startTime: string;
+    endTime?: string;
+    duration: number;
+    subject?: string;
+    breaks: number;
+    focusScore: number;
+  }>; // Record of focus sessions with details
+  subjectStats: {
+    [subject: string]: {
+      totalTime: number;
+      averageScore: number;
+      sessionsCount: number;
+      lastStudied: string;
+    };
+  }; // Stats per subject
 }
 
 export const ACHIEVEMENTS: Achievement[] = [
@@ -59,7 +90,7 @@ export const ACHIEVEMENTS: Achievement[] = [
     category: 'beginner',
     condition: (stats) => stats.totalTodos >= 1,
     reward: { xp: 50 },
-    color: 'from-blue-400 to-blue-500',
+    color: 'bg-primary',
   },
   {
     id: 'first-focus',
@@ -69,7 +100,7 @@ export const ACHIEVEMENTS: Achievement[] = [
     category: 'beginner',
     condition: (stats) => stats.focusSessions >= 1,
     reward: { xp: 50 },
-    color: 'from-purple-400 to-purple-500',
+    color: 'bg-accent',
   },
   {
     id: 'first-plan',
@@ -79,7 +110,7 @@ export const ACHIEVEMENTS: Achievement[] = [
     category: 'beginner',
     condition: (stats) => stats.planBoardItems >= 1,
     reward: { xp: 50 },
-    color: 'from-green-400 to-green-500',
+    color: 'bg-success',
   },
 
   // Consistency Achievements
@@ -91,7 +122,7 @@ export const ACHIEVEMENTS: Achievement[] = [
     category: 'consistency',
     condition: (stats) => stats.streak >= 7,
     reward: { xp: 100, title: 'The Consistent' },
-    color: 'from-orange-400 to-orange-500',
+    color: 'bg-warning',
     tier: 1,
   },
   {
@@ -102,7 +133,7 @@ export const ACHIEVEMENTS: Achievement[] = [
     category: 'consistency',
     condition: (stats) => stats.streak >= 30,
     reward: { xp: 300, title: 'The Dedicated' },
-    color: 'from-orange-500 to-red-500',
+    color: 'bg-destructive',
     tier: 2,
   },
   {
@@ -113,7 +144,7 @@ export const ACHIEVEMENTS: Achievement[] = [
     category: 'consistency',
     condition: (stats) => stats.streak >= 90,
     reward: { xp: 1000, title: 'The Unstoppable' },
-    color: 'from-red-500 to-purple-500',
+    color: 'bg-destructive',
     tier: 3,
   },
 
@@ -126,7 +157,7 @@ export const ACHIEVEMENTS: Achievement[] = [
     category: 'focus',
     condition: (stats) => stats.totalFocusTime >= 10,
     reward: { xp: 200, title: 'Focus Master' },
-    color: 'from-blue-500 to-indigo-500',
+    color: 'bg-primary',
     tier: 1,
   },
   {
@@ -137,7 +168,7 @@ export const ACHIEVEMENTS: Achievement[] = [
     category: 'focus',
     condition: (stats) => stats.totalFocusTime >= 50,
     reward: { xp: 500, title: 'Focus Legend' },
-    color: 'from-indigo-500 to-purple-500',
+    color: 'bg-accent',
     tier: 2,
   },
   {
@@ -148,7 +179,7 @@ export const ACHIEVEMENTS: Achievement[] = [
     category: 'focus',
     condition: (stats) => stats.longestSession >= 120,
     reward: { xp: 150, badge: 'marathon' },
-    color: 'from-green-500 to-emerald-500',
+    color: 'bg-success',
   },
 
   // Task Achievements
@@ -171,7 +202,7 @@ export const ACHIEVEMENTS: Achievement[] = [
     category: 'milestone',
     condition: (stats) => stats.completedTodos >= 100,
     reward: { xp: 400, title: 'Productivity Guru' },
-    color: 'from-orange-500 to-red-500',
+    color: 'bg-destructive',
     tier: 2,
   },
   {
@@ -182,7 +213,7 @@ export const ACHIEVEMENTS: Achievement[] = [
     category: 'special',
     condition: (stats) => stats.perfectDays >= 1,
     reward: { xp: 100, badge: 'perfect-day' },
-    color: 'from-yellow-400 to-amber-500',
+    color: 'bg-warning',
   },
   {
     id: 'perfect-week',
@@ -216,7 +247,7 @@ export const ACHIEVEMENTS: Achievement[] = [
     condition: (stats) => stats.nightOwlSessions >= 1,
     reward: { xp: 100, title: 'Night Owl' },
     secret: true,
-    color: 'from-indigo-500 to-purple-500',
+    color: 'bg-accent',
   },
   {
     id: 'weekend-warrior',
@@ -226,7 +257,7 @@ export const ACHIEVEMENTS: Achievement[] = [
     category: 'special',
     condition: (stats) => stats.weekendSessions >= 10,
     reward: { xp: 200, title: 'Weekend Warrior' },
-    color: 'from-green-500 to-emerald-500',
+    color: 'bg-success',
   },
 
   // Planning Achievements
@@ -238,7 +269,7 @@ export const ACHIEVEMENTS: Achievement[] = [
     category: 'planning',
     condition: (stats) => stats.planBoardItems >= 10,
     reward: { xp: 150, title: 'Master Planner' },
-    color: 'from-cyan-500 to-blue-500',
+    color: 'bg-info',
     tier: 1,
   },
   {
@@ -249,7 +280,7 @@ export const ACHIEVEMENTS: Achievement[] = [
     category: 'planning',
     condition: (stats) => stats.planBoardItems >= 25,
     reward: { xp: 300, title: 'The Visionary' },
-    color: 'from-blue-500 to-indigo-500',
+    color: 'bg-primary',
     tier: 2,
   },
 
@@ -262,7 +293,7 @@ export const ACHIEVEMENTS: Achievement[] = [
     category: 'milestone',
     condition: (stats) => stats.level >= 5,
     reward: { xp: 200, title: 'Rising Star' },
-    color: 'from-yellow-400 to-amber-500',
+    color: 'bg-warning',
     tier: 1,
   },
   {
@@ -284,7 +315,7 @@ export const ACHIEVEMENTS: Achievement[] = [
     category: 'milestone',
     condition: (stats) => stats.level >= 25,
     reward: { xp: 1000, title: 'The Legend', badge: 'legend' },
-    color: 'from-orange-500 to-red-500',
+    color: 'bg-destructive',
     tier: 3,
   },
 
@@ -297,7 +328,7 @@ export const ACHIEVEMENTS: Achievement[] = [
     category: 'milestone',
     condition: (stats) => stats.completedHighPriorityTodos >= 10,
     reward: { xp: 250, title: 'Priority Hero' },
-    color: 'from-red-500 to-rose-500',
+    color: 'bg-destructive',
     tier: 2,
   },
   {
@@ -308,7 +339,7 @@ export const ACHIEVEMENTS: Achievement[] = [
     category: 'milestone',
     condition: (stats) => stats.completedOnTimeTodos >= 20,
     reward: { xp: 300, title: 'Deadline Demon' },
-    color: 'from-slate-500 to-gray-600',
+    color: 'bg-muted',
     tier: 2,
   },
 
@@ -321,7 +352,7 @@ export const ACHIEVEMENTS: Achievement[] = [
     category: 'planning',
     condition: (stats) => stats.plansCreatedInAdvance >= 7,
     reward: { xp: 200, title: 'Future Architect' },
-    color: 'from-sky-500 to-cyan-500',
+    color: 'bg-info',
     tier: 2,
   },
 ];

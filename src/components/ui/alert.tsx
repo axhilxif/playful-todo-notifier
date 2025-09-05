@@ -1,59 +1,52 @@
-import * as React from "react"
-import { cva, type VariantProps } from "class-variance-authority"
+import * as React from 'react';
+import MuiAlert from '@mui/material/Alert';
+import MuiAlertTitle from '@mui/material/AlertTitle';
+import Typography from '@mui/material/Typography';
 
-import { cn } from "@/lib/utils"
+interface AlertProps extends React.ComponentProps<typeof MuiAlert> {
+  variant?: 'default' | 'destructive';
+}
 
-const alertVariants = cva(
-  "relative w-full rounded-lg border p-4 [&>svg~*]:pl-7 [&>svg+div]:translate-y-[-3px] [&>svg]:absolute [&>svg]:left-4 [&>svg]:top-4 [&>svg]:text-foreground",
-  {
-    variants: {
-      variant: {
-        default: "bg-background text-foreground",
-        destructive:
-          "border-destructive/50 text-destructive dark:border-destructive [&>svg]:text-destructive",
-      },
-    },
-    defaultVariants: {
-      variant: "default",
-    },
+const Alert = React.forwardRef<HTMLDivElement, AlertProps>(
+  ({ className, variant, children, ...props }, ref) => {
+    let severity: 'success' | 'info' | 'warning' | 'error' = 'info';
+    if (variant === 'destructive') {
+      severity = 'error';
+    }
+
+    return (
+      <MuiAlert
+        ref={ref}
+        severity={severity}
+        variant="outlined" // Using outlined for a cleaner M3 look, can be adjusted
+        className={className}
+        {...props}
+      >
+        {children}
+      </MuiAlert>
+    );
   }
-)
+);
+Alert.displayName = 'Alert';
 
-const Alert = React.forwardRef<
-  HTMLDivElement,
-  React.HTMLAttributes<HTMLDivElement> & VariantProps<typeof alertVariants>
->(({ className, variant, ...props }, ref) => (
-  <div
-    ref={ref}
-    role="alert"
-    className={cn(alertVariants({ variant }), className)}
-    {...props}
-  />
-))
-Alert.displayName = "Alert"
+interface AlertTitleProps extends React.ComponentProps<typeof MuiAlertTitle> {}
 
-const AlertTitle = React.forwardRef<
-  HTMLParagraphElement,
-  React.HTMLAttributes<HTMLHeadingElement>
->(({ className, ...props }, ref) => (
-  <h5
-    ref={ref}
-    className={cn("mb-1 font-medium leading-none tracking-tight", className)}
-    {...props}
-  />
-))
-AlertTitle.displayName = "AlertTitle"
+const AlertTitle = React.forwardRef<HTMLHeadingElement, AlertTitleProps>(
+  ({ className, ...props }, ref) => (
+    <MuiAlertTitle ref={ref} className={className} {...props} />
+  )
+);
+AlertTitle.displayName = 'AlertTitle';
 
-const AlertDescription = React.forwardRef<
-  HTMLParagraphElement,
-  React.HTMLAttributes<HTMLParagraphElement>
->(({ className, ...props }, ref) => (
-  <div
-    ref={ref}
-    className={cn("text-sm [&_p]:leading-relaxed", className)}
-    {...props}
-  />
-))
-AlertDescription.displayName = "AlertDescription"
+interface AlertDescriptionProps extends React.ComponentProps<typeof Typography> {}
 
-export { Alert, AlertTitle, AlertDescription }
+const AlertDescription = React.forwardRef<HTMLParagraphElement, AlertDescriptionProps>(
+  ({ className, children, ...props }, ref) => (
+    <Typography ref={ref} variant="body2" className={className} {...props}>
+      {children}
+    </Typography>
+  )
+);
+AlertDescription.displayName = 'AlertDescription';
+
+export { Alert, AlertTitle, AlertDescription };

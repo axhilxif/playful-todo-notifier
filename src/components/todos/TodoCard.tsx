@@ -30,8 +30,9 @@ export function TodoCard({ todo, onToggle, onEdit, onDelete, className, style }:
 
   return (
     <Card 
+      variant="elevated" 
       className={cn(
-        "transition-all duration-300 hover:shadow-primary hover:scale-[1.02] cursor-pointer bg-gradient-card border-primary/10",
+        "cursor-pointer transition-all duration-300 hover:scale-[1.02]",
         todo.completed && "opacity-75 hover:opacity-100",
         className
       )}
@@ -46,7 +47,7 @@ export function TodoCard({ todo, onToggle, onEdit, onDelete, className, style }:
             <Checkbox
               checked={todo.completed}
               onCheckedChange={onToggle}
-              className="h-5 w-5 transition-all duration-200 hover:scale-110"
+              className="h-6 w-6 transition-all duration-200 hover:scale-110"
             />
           </div>
 
@@ -55,7 +56,7 @@ export function TodoCard({ todo, onToggle, onEdit, onDelete, className, style }:
             <div className="flex items-start justify-between">
               <div className="flex-1">
                 <h3 className={cn(
-                  "font-semibold text-sm transition-all duration-200",
+                  "font-semibold text-base transition-all duration-200",
                   todo.completed && "line-through text-muted-foreground"
                 )}>
                   {todo.title}
@@ -73,7 +74,7 @@ export function TodoCard({ todo, onToggle, onEdit, onDelete, className, style }:
                 {/* Meta info */}
                 <div className="flex items-center gap-3 mt-3 flex-wrap">
                   {/* Priority badge */}
-                  <Badge variant="secondary" className={cn("text-xs", priority.color)}>
+                  <Badge variant="secondary" className={cn("text-sm", priority.color)}>
                     <span className="mr-1">{priority.icon}</span>
                     {todo.priority}
                   </Badge>
@@ -81,7 +82,7 @@ export function TodoCard({ todo, onToggle, onEdit, onDelete, className, style }:
                   {/* Due date */}
                   {todo.dueDate && (
                     <div className="flex items-center text-xs text-muted-foreground">
-                      <Clock className="h-3 w-3 mr-1" />
+                      <Clock className="h-4 w-4 mr-1" />
                       {format(new Date(todo.dueDate), 'MMM d, h:mm a')}
                     </div>
                   )}
@@ -101,16 +102,16 @@ export function TodoCard({ todo, onToggle, onEdit, onDelete, className, style }:
                 <DropdownMenuTrigger asChild>
                   <Button
                     variant="ghost"
-                    size="sm"
+                    size="icon"
                     className={cn(
-                      "h-8 w-8 p-0 transition-all duration-200",
+                      "h-10 w-10 p-0 transition-all duration-200",
                       isHovered ? "opacity-100" : "opacity-0 sm:opacity-60"
                     )}
                   >
                     <MoreVertical className="h-4 w-4" />
                   </Button>
                 </DropdownMenuTrigger>
-                <DropdownMenuContent align="end" className="w-48">
+                <DropdownMenuContent align="end" className="w-56">
                   <DropdownMenuItem onClick={onEdit} className="cursor-pointer">
                     <Edit className="h-4 w-4 mr-2" />
                     Edit Todo

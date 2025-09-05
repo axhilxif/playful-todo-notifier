@@ -61,10 +61,10 @@ export default {
       borderRadius: {
         "xs": "0.25rem", // 4px
         "sm": "0.5rem",  // 8px
-        "md": "0.75rem", // 12px
-        "lg": "1rem",    // 16px
-        "xl": "1.5rem",   // 24px
-        "2xl": "2rem",  // 32px
+        "md": "1rem", // 16px (was 0.75rem)
+        "lg": "1.5rem",    // 24px (was 1rem)
+        "xl": "2rem",   // 32px (was 1.5rem)
+        "2xl": "2.5rem",  // 40px (was 2rem)
       },
       keyframes: {
         "accordion-down": {

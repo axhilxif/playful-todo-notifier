@@ -3,7 +3,10 @@ import { TrendingUp, Calendar, Clock, Target, Flame, Trophy, Star, Zap, Brain } 
 import { useEffect, useState } from 'react';
 import { Badge } from '@/components/ui/badge';
 import { Progress } from '@/components/ui/progress';
-import { calculateUserStats, checkAchievements } from '@/lib/achievements';
+import { calculateUserStats } from '@/lib/gamification';
+import { generateSmartInsights, SmartInsight } from '@/lib/smart-insights';
+import { getTodos, getPlans } from '@/lib/storage'; // Import getTodos and getPlans
+import { generateSmartInsights, SmartInsight } from '@/lib/smart-insights';
 
 interface EnhancedInsightData {
   streak: number;
@@ -22,6 +25,7 @@ interface EnhancedInsightData {
     target: number;
   };
   motivationalTip: string;
+  smartInsights: SmartInsight[]; // New: Array of smart insights
 }
 
 const MOTIVATIONAL_TIPS = [
@@ -45,73 +49,34 @@ export function EnhancedInsightsCard() {
     xpProgress: 0,
     weeklyGoal: { completed: 0, target: 10 },
     motivationalTip: '',
+    smartInsights: [], // Initialize with empty array
   });
 
   useEffect(() => {
     const loadInsights = () => {
       const stats = calculateUserStats();
-      const sessions = JSON.parse(localStorage.getItem('focusSessions') || '[]');
-      const todos = JSON.parse(localStorage.getItem('todo-app-todos') || '[]');
-      const profile = JSON.parse(localStorage.getItem('userProfile') || '{}');
-      
-      if (sessions.length === 0 && todos.length === 0) return;
+      const todos = getTodos(); // Fetch real todos
+      const plans = getPlans(); // Fetch real plans
 
-      // Calculate streak
-      const sortedSessions = sessions
-        .map((s: any) => new Date(s.endTime).toDateString())
-        .sort((a: string, b: string) => new Date(b).getTime() - new Date(a).getTime());
-      
-      const uniqueDays = [...new Set(sortedSessions)];
-      let streak = 0;
-      const today = new Date().toDateString();
-      
-      if (uniqueDays[0] === today || uniqueDays[0] === new Date(Date.now() - 24 * 60 * 60 * 1000).toDateString()) {
-        for (let i = 0; i < uniqueDays.length; i++) {
-          const expectedDate = new Date(Date.now() - i * 24 * 60 * 60 * 1000).toDateString();
-          if (uniqueDays[i] === expectedDate) {
-            streak++;
-          } else {
-            break;
-          }
-        }
-      }
+      const smartInsights = generateSmartInsights(plans, todos, stats);
 
-      // Calculate best day
-      const dayTotals: { [key: string]: number } = {};
-      sessions.forEach((session: any) => {
-        const day = new Date(session.endTime).toDateString();
-        dayTotals[day] = (dayTotals[day] || 0) + session.duration;
-      });
-      
-      const bestDay = Object.entries(dayTotals).length > 0 
-        ? Object.entries(dayTotals).reduce((a, b) => dayTotals[a[0]] > dayTotals[b[0]] ? a : b)[0]
-        : null;
-
-      // Calculate weekly goal progress
-      const weekStart = new Date();
-      weekStart.setDate(weekStart.getDate() - weekStart.getDay());
-      const weeklyTodos = todos.filter((todo: any) => {
-        const todoDate = new Date(todo.createdAt || todo.updatedAt);
-        return todoDate >= weekStart && todo.completed;
-      });
-
-      // Level and XP
-      const level = profile.level || 1;
-      const xp = profile.xp || 0;
-      const xpProgress = (xp % 100);
+      // Calculate best day from productiveHours
+      const bestHour = stats.productiveHours.indexOf(Math.max(...stats.productiveHours));
+      const bestDay = bestHour !== -1 ? `Around ${bestHour}:00` : 'No data';
 
       setInsights({
-        streak,
-        bestDay: bestDay ? new Date(bestDay).toLocaleDateString('en-US', { weekday: 'long', month: 'short', day: 'numeric' }) : 'No data',
+        streak: stats.streak,
+        bestDay: bestDay,
         totalHours: stats.totalFocusTime,
         productivity: stats.totalTodos > 0 ? Math.round((stats.completedTodos / stats.totalTodos) * 100) : 0,
-        level,
-        xpProgress,
+        level: stats.level,
+        xpProgress: (stats.xp % 100),
         weeklyGoal: {
-          completed: weeklyTodos.length,
-          target: 10
+          completed: stats.weeklyStats.completedTodos,
+          target: 10 // This target could be dynamic or user-defined
         },
         motivationalTip: MOTIVATIONAL_TIPS[Math.floor(Math.random() * MOTIVATIONAL_TIPS.length)],
+        smartInsights: smartInsights,
       });
     };
 
@@ -135,7 +100,7 @@ export function EnhancedInsightsCard() {
           Your Insights Dashboard
         </CardTitle>
       </CardHeader>
-      <CardContent className="space-y-5">
+      <CardContent className="space-y-5 p-4">
         
         {/* Level Progress */}
         <div className="p-4 bg-gradient-primary/5 rounded-xl border border-primary/10">
@@ -218,6 +183,39 @@ export function EnhancedInsightsCard() {
             </div>
           </div>
         </div>
+
+        {/* Smart Insights */}
+        {insights.smartInsights.length > 0 && (
+          <div className="space-y-3">
+            <h3 className="text-lg font-semibold text-primary">AI Suggestions</h3>
+            {insights.smartInsights.map(insight => (
+              <div
+                key={insight.id}
+                className={`p-4 rounded-xl border ${insight.type === 'success' ? 'bg-gradient-success/5 border-success/10' : insight.type === 'warning' ? 'bg-gradient-warning/5 border-warning/10' : 'bg-gradient-info/5 border-info/10'}`}
+              >
+                <div className="flex items-center justify-between mb-2">
+                  <h4 className={`font-semibold ${insight.type === 'success' ? 'text-success' : insight.type === 'warning' ? 'text-warning' : 'text-info'}`}>
+                    {insight.title}
+                  </h4>
+                  <Badge
+                    variant="outline"
+                    className={`${insight.priority === 'high' ? 'bg-destructive/10 text-destructive border-destructive/20' : insight.priority === 'medium' ? 'bg-warning/10 text-warning border-warning/20' : 'bg-info/10 text-info border-info/20'}`}
+                  >
+                    {insight.priority.charAt(0).toUpperCase() + insight.priority.slice(1)} Priority
+                  </Badge>
+                </div>
+                <p className="text-sm text-muted-foreground mb-3">{insight.message}</p>
+                {insight.action && (
+                  <a href={insight.action.route}>
+                    <Button variant="outline" size="sm">
+                      {insight.action.label}
+                    </Button>
+                  </a>
+                )}
+              </div>
+            ))}
+          </div>
+        )}
       </CardContent>
     </Card>
   );

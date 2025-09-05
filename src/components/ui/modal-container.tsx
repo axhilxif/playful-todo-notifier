@@ -26,7 +26,7 @@ export function ModalContainer({
         <SheetContent 
           side="bottom" 
           className={cn(
-            "h-[90vh] overflow-y-auto rounded-t-[20px] pt-6",
+            "h-auto max-h-[90vh] w-full max-w-none overflow-y-auto overscroll-contain shadow-lg p-0 rounded-t-3xl",
             className
           )}
         >
@@ -39,8 +39,7 @@ export function ModalContainer({
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
       <DialogContent className={cn(
-        "max-h-[90vh] w-[90vw] max-w-[500px] overflow-y-auto",
-        position === 'center' ? "sm:max-h-[85vh]" : "sm:max-h-[90vh] sm:translate-y-[5vh]",
+        "inset-x-0 mx-auto w-[92vw] max-w-[640px] max-h-[85vh] overflow-y-auto overscroll-contain rounded-3xl shadow-lg top-[8vh] translate-x-0 translate-y-0 p-4",
         className
       )}>
         {children}

@@ -1,56 +1,69 @@
-import * as React from "react"
-import * as AccordionPrimitive from "@radix-ui/react-accordion"
-import { ChevronDown } from "lucide-react"
+import * as React from 'react';
+import Accordion from '@mui/material/Accordion';
+import AccordionSummary from '@mui/material/AccordionSummary';
+import AccordionDetails from '@mui/material/AccordionDetails';
+import ExpandMoreIcon from '@mui/icons-material/ExpandMore';
+import Typography from '@mui/material/Typography';
 
-import { cn } from "@/lib/utils"
+interface AccordionProps extends React.ComponentProps<typeof Accordion> {}
 
-const Accordion = AccordionPrimitive.Root
+const M3Accordion = React.forwardRef<HTMLDivElement, AccordionProps>(
+  ({ children, ...props }, ref) => {
+    return (
+      <Accordion ref={ref} {...props}>
+        {children}
+      </Accordion>
+    );
+  }
+);
+M3Accordion.displayName = 'M3Accordion';
 
-const AccordionItem = React.forwardRef<
-  React.ElementRef<typeof AccordionPrimitive.Item>,
-  React.ComponentPropsWithoutRef<typeof AccordionPrimitive.Item>
->(({ className, ...props }, ref) => (
-  <AccordionPrimitive.Item
-    ref={ref}
-    className={cn("border-b", className)}
-    {...props}
-  />
-))
-AccordionItem.displayName = "AccordionItem"
+interface AccordionItemProps extends React.ComponentProps<typeof Accordion> {}
 
-const AccordionTrigger = React.forwardRef<
-  React.ElementRef<typeof AccordionPrimitive.Trigger>,
-  React.ComponentPropsWithoutRef<typeof AccordionPrimitive.Trigger>
->(({ className, children, ...props }, ref) => (
-  <AccordionPrimitive.Header className="flex">
-    <AccordionPrimitive.Trigger
+const AccordionItem = React.forwardRef<HTMLDivElement, AccordionItemProps>(
+  ({ children, ...props }, ref) => {
+    return (
+      <Accordion ref={ref} {...props}>
+        {children}
+      </Accordion>
+    );
+  }
+);
+AccordionItem.displayName = 'AccordionItem';
+
+interface AccordionTriggerProps extends React.ComponentProps<typeof AccordionSummary> {
+  children: React.ReactNode;
+}
+
+const AccordionTrigger = React.forwardRef<HTMLDivElement, AccordionTriggerProps>(
+  ({ children, ...props }, ref) => (
+    <AccordionSummary
       ref={ref}
-      className={cn(
-        "flex flex-1 items-center justify-between py-4 font-medium transition-all hover:underline [&[data-state=open]>svg]:rotate-180",
-        className
-      )}
+      expandIcon={<ExpandMoreIcon />}
+      aria-controls="panel1a-content"
+      id="panel1a-header"
       {...props}
     >
+      <Typography>{children}</Typography>
+    </AccordionSummary>
+  )
+);
+AccordionTrigger.displayName = 'AccordionTrigger';
+
+interface AccordionContentProps extends React.ComponentProps<typeof AccordionDetails> {}
+
+const AccordionContent = React.forwardRef<HTMLDivElement, AccordionContentProps>(
+  ({ children, ...props }, ref) => (
+    <AccordionDetails ref={ref} {...props}>
       {children}
-      <ChevronDown className="h-4 w-4 shrink-0 transition-transform duration-200" />
-    </AccordionPrimitive.Trigger>
-  </AccordionPrimitive.Header>
-))
-AccordionTrigger.displayName = AccordionPrimitive.Trigger.displayName
+    </AccordionDetails>
+  )
+);
+AccordionContent.displayName = 'AccordionContent';
 
-const AccordionContent = React.forwardRef<
-  React.ElementRef<typeof AccordionPrimitive.Content>,
-  React.ComponentPropsWithoutRef<typeof AccordionPrimitive.Content>
->(({ className, children, ...props }, ref) => (
-  <AccordionPrimitive.Content
-    ref={ref}
-    className="overflow-hidden text-sm transition-all data-[state=closed]:animate-accordion-up data-[state=open]:animate-accordion-down"
-    {...props}
-  >
-    <div className={cn("pb-4 pt-0", className)}>{children}</div>
-  </AccordionPrimitive.Content>
-))
-
-AccordionContent.displayName = AccordionPrimitive.Content.displayName
-
-export { Accordion, AccordionItem, AccordionTrigger, AccordionContent }
+export {
+  M3Accordion as Accordion,
+  AccordionItem,
+  AccordionTrigger,
+  AccordionContent,
+};

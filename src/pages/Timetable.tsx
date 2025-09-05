@@ -8,7 +8,7 @@ import { TimeSlotForm } from '@/components/timetable/TimeSlotForm';
 import { WeeklyCalendar } from '@/components/timetable/WeeklyCalendar';
 import { TimeSlot } from '@/types';
 import { getTimeSlots, setTimeSlots } from '@/lib/storage';
-import { playHaptic } from '@/lib/notifications';
+import { notificationService } from '@/lib/notification-service';
 import { useToast } from '@/hooks/use-toast';
 
 export default function Timetable() {
@@ -37,7 +37,7 @@ export default function Timetable() {
     const updatedSlots = [...timeSlots, newSlot];
     saveTimeSlots(updatedSlots);
     setShowForm(false);
-    playHaptic();
+    notificationService.playHaptic();
     
     toast({
       title: "Schedule added! 📅",
@@ -60,7 +60,7 @@ export default function Timetable() {
     saveTimeSlots(updatedSlots);
     setEditingSlot(null);
     setShowForm(false);
-    playHaptic();
+    notificationService.playHaptic();
     
     toast({
       title: "Schedule updated! ✨",
@@ -72,7 +72,7 @@ export default function Timetable() {
     const slot = timeSlots.find(s => s.id === id);
     const updatedSlots = timeSlots.filter(slot => slot.id !== id);
     saveTimeSlots(updatedSlots);
-    playHaptic();
+    notificationService.playHaptic();
     
     if (slot) {
       toast({
@@ -94,10 +94,10 @@ export default function Timetable() {
         action={
           <Button 
             onClick={() => setShowForm(true)}
-            className="bg-gradient-accent hover:bg-gradient-accent/90 shadow-playful"
+            variant="default"
           >
             <Plus className="h-4 w-4 mr-2" />
-            Add Schedule
+            Add
           </Button>
         }
       />
@@ -126,7 +126,7 @@ export default function Timetable() {
                 </p>
                 <Button 
                   onClick={() => setShowForm(true)}
-                  className="bg-gradient-accent hover:bg-gradient-accent/90"
+                  variant="default"
                 >
                   <Plus className="h-4 w-4 mr-2" />
                   Add Your First Schedule

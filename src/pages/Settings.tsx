@@ -8,10 +8,12 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { PageHeader } from '@/components/ui/page-header';
 import { NotificationSettings } from '@/types';
 import { getSettings, setSettings } from '@/lib/storage';
-import { requestNotificationPermission, scheduleBreakReminder, playHaptic } from '@/lib/notifications';
+import { notificationService } from '@/lib/notification-service';
 import { useToast } from '@/hooks/use-toast';
 import { useIntroScreen } from '@/hooks/use-intro-screen';
 import { downloadBackup, handleFileImport } from '@/lib/data-export';
+import { useTheme } from '@/hooks/use-theme';
+import { COLOR_PALETTES } from '@/lib/color-palettes';
 
 export default function Settings() {
   const [settings, setSettingsState] = useState<NotificationSettings>({
@@ -24,6 +26,7 @@ export default function Settings() {
   const [hasPermission, setHasPermission] = useState(false);
   const { toast } = useToast();
   const { showIntro } = useIntroScreen();
+  const { theme, toggleTheme, paletteId, setPalette } = useTheme(); // Use the theme hook
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   const handleDataImport = async (event: React.ChangeEvent<HTMLInputElement>) => {
@@ -32,7 +35,7 @@ export default function Settings() {
 
     try {
       const result = await handleFileImport(file);
-      playHaptic();
+      notificationService.playHaptic();
       
       if (result.success) {
         toast({
@@ -69,7 +72,7 @@ export default function Settings() {
 
   const checkNotificationPermission = async () => {
     try {
-      const permission = await requestNotificationPermission();
+      const permission = await notificationService.requestPermissions();
       setHasPermission(permission);
     } catch (error) {
       console.error('Error checking notification permission:', error);
@@ -79,7 +82,7 @@ export default function Settings() {
   const saveSettings = (newSettings: NotificationSettings) => {
     setSettings(newSettings);
     setSettingsState(newSettings);
-    playHaptic();
+    notificationService.playHaptic();
   };
 
   const handleToggleSetting = (key: keyof NotificationSettings, value: boolean) => {
@@ -105,7 +108,7 @@ export default function Settings() {
 
   const testNotification = async () => {
     if (!hasPermission) {
-      const permission = await requestNotificationPermission();
+      const permission = await notificationService.requestPermissions();
       setHasPermission(permission);
       
       if (!permission) {
@@ -120,7 +123,7 @@ export default function Settings() {
 
     try {
       const testTime = new Date(Date.now() + 3000); // 3 seconds from now
-      await scheduleBreakReminder(0.05); // Very short interval for testing
+      await notificationService.scheduleImmediateNotification('🔔 Test Notification', 'You should receive a test notification in 3 seconds.', 'reminders');
       
       toast({
         title: "Test notification scheduled! 🔔",
@@ -154,20 +157,21 @@ export default function Settings() {
 
       {/* Notification Permission Card */}
       {!hasPermission && (
-        <Card className="mb-6 border-warning/50 bg-warning/5">
-          <CardHeader>
-            <CardTitle className="text-lg flex items-center gap-2 text-warning">
-              <Bell className="h-5 w-5" />
-              Notification Permission Required
-            </CardTitle>
+        <Card variant="elevated" className="mb-6">
+          <CardHeader className="flex items-center">
+            <CardTitle className="text-lg flex items-center gap-2 text-foreground flex-1 p-4">
+            <Bell className="h-5 w-5 text-warning flex-shrink-0" />
+            Notification Permission Required
+          </CardTitle>
           </CardHeader>
-          <CardContent>
+          <CardContent className="p-4">
             <p className="text-sm text-muted-foreground mb-4">
               To receive reminders and notifications, please grant permission to send notifications.
             </p>
             <Button 
               onClick={checkNotificationPermission}
-              className="w-full bg-gradient-warning hover:bg-gradient-warning/90"
+              variant="default"
+              className="w-full"
             >
               Enable Notifications
             </Button>
@@ -177,13 +181,13 @@ export default function Settings() {
 
       {/* General Notifications */}
       <Card className="mb-6">
-        <CardHeader>
-          <CardTitle className="text-lg flex items-center gap-2">
-            <Bell className="h-5 w-5 text-primary" />
+        <CardHeader className="flex items-center">
+          <CardTitle className="text-lg flex items-center gap-2 text-foreground flex-1 p-4">
+            <Bell className="h-5 w-5 text-primary flex-shrink-0" />
             Notifications
           </CardTitle>
         </CardHeader>
-        <CardContent className="space-y-6">
+        <CardContent className="space-y-6 p-4">
           {/* Master notification toggle */}
           <div className="flex items-center justify-between">
             <div className="space-y-1">
@@ -246,13 +250,13 @@ export default function Settings() {
 
       {/* Break Reminders */}
       <Card className="mb-6">
-        <CardHeader>
-          <CardTitle className="text-lg flex items-center gap-2">
-            <Clock className="h-5 w-5 text-accent" />
+        <CardHeader className="flex items-center p-4">
+          <CardTitle className="text-lg flex items-center gap-2 text-foreground flex-1">
+            <Clock className="h-5 w-5 text-accent flex-shrink-0" />
             Break Reminders
           </CardTitle>
         </CardHeader>
-        <CardContent className="space-y-6">
+        <CardContent className="space-y-6 p-4">
           {/* Break reminders toggle */}
           <div className="flex items-center justify-between">
             <div className="space-y-1">
@@ -295,22 +299,70 @@ export default function Settings() {
         </CardContent>
       </Card>
 
+      {/* Appearance */}
+      <Card className="mb-6">
+        <CardHeader className="flex items-center p-4">
+          <CardTitle className="text-lg flex items-center gap-2 text-foreground flex-1">
+            <Smartphone className="h-5 w-5 text-primary flex-shrink-0" />
+            Appearance
+          </CardTitle>
+        </CardHeader>
+        <CardContent className="space-y-6 p-4">
+          <div className="flex items-center justify-between">
+            <div className="space-y-1">
+              <Label className="text-base font-medium">Dark Mode</Label>
+              <p className="text-sm text-muted-foreground">
+                Toggle between light and dark themes
+              </p>
+            </div>
+            <Switch
+              checked={theme === 'dark'}
+              onCheckedChange={toggleTheme}
+            />
+          </div>
+
+          <div className="flex items-center justify-between">
+            <div className="space-y-1">
+              <Label className="text-base font-medium">Color Palette</Label>
+              <p className="text-sm text-muted-foreground">
+                Choose your preferred color scheme
+              </p>
+            </div>
+            <Select
+              value={paletteId}
+              onValueChange={setPalette}
+            >
+              <SelectTrigger className="w-[180px]">
+                <SelectValue placeholder="Select a palette" />
+              </SelectTrigger>
+              <SelectContent>
+                {COLOR_PALETTES.map((palette) => (
+                  <SelectItem key={palette.id} value={palette.id}>
+                    {palette.name}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
+        </CardContent>
+      </Card>
+
       {/* App Management */}
       <Card className="mb-6">
-        <CardHeader>
-          <CardTitle className="text-lg flex items-center gap-2">
-            <RefreshCw className="h-5 w-5 text-info" />
+        <CardHeader className="flex items-center p-4">
+          <CardTitle className="text-lg flex items-center gap-2 text-foreground flex-1">
+            <RefreshCw className="h-5 w-5 text-info flex-shrink-0" />
             App Management
           </CardTitle>
         </CardHeader>
-        <CardContent className="space-y-6">
+        <CardContent className="space-y-6 p-4">
           <div className="grid grid-cols-2 gap-3">
             <Button
               variant="outline"
-              className="h-14 flex-col gap-1.5 hover:bg-info/5 border-info/20"
+              className="h-auto flex-col gap-1.5 p-4"
               onClick={() => {
                 downloadBackup();
-                playHaptic();
+                notificationService.playHaptic();
                 toast({
                   title: "Data exported! 📁",
                   description: "Your backup file has been downloaded.",
@@ -323,7 +375,7 @@ export default function Settings() {
             
             <Button
               variant="outline"
-              className="h-14 flex-col gap-1.5 hover:bg-info/5 border-info/20"
+              className="h-auto flex-col gap-1.5 p-4"
               onClick={() => fileInputRef.current?.click()}
             >
               <Upload className="h-4 w-4 text-info" />
@@ -332,7 +384,7 @@ export default function Settings() {
 
             <Button
               variant="outline"
-              className="h-14 flex-col gap-1.5 hover:bg-primary/5 border-primary/20"
+              className="h-auto flex-col gap-1.5 p-4"
               onClick={showIntro}
             >
               <Play className="h-4 w-4 text-primary" />
@@ -356,13 +408,13 @@ export default function Settings() {
 
       {/* App Info */}
       <Card className="mb-6">
-        <CardHeader>
-          <CardTitle className="text-lg flex items-center gap-2">
-            <Smartphone className="h-5 w-5 text-success" />
+        <CardHeader className="flex items-center p-4">
+          <CardTitle className="text-lg flex items-center gap-2 text-foreground flex-1">
+            <Smartphone className="h-5 w-5 text-success flex-shrink-0" />
             App Information
           </CardTitle>
         </CardHeader>
-        <CardContent className="space-y-4">
+        <CardContent className="space-y-4 p-4">
           <div className="grid grid-cols-2 gap-4 text-sm">
             <div>
               <div className="font-medium text-foreground">App Name</div>
@@ -370,7 +422,7 @@ export default function Settings() {
             </div>
             <div>
               <div className="font-medium text-foreground">Version</div>
-              <div className="text-muted-foreground">1.0.0</div>
+              <div className="text-muted-foreground">2.0.0</div>
             </div>
             <div>
               <div className="font-medium text-foreground">Build Type</div>
@@ -382,27 +434,18 @@ export default function Settings() {
             </div>
           </div>
           
-          <div className="pt-4 border-t">
-            <h4 className="font-medium mb-2">Features</h4>
-            <ul className="text-sm text-muted-foreground space-y-1">
-              <li>• Smart todo management with priorities</li>
-              <li>• Calendar and list view for schedules</li>
-              <li>• Focus timer with app-switching detection</li>
-              <li>• Break reminders for eye health</li>
-              <li>• Local notifications and haptic feedback</li>
-            </ul>
-          </div>
+         
         </CardContent>
       </Card>
 
       {/* Reset Section */}
-      <Card className="border-destructive/50 bg-destructive/5">
-        <CardHeader>
-          <CardTitle className="text-lg text-destructive">
+      <Card variant="elevated">
+        <CardHeader className="flex items-center p-4">
+          <CardTitle className="text-lg text-destructive text-foreground flex-1">
             ⚠️ Reset Data
           </CardTitle>
         </CardHeader>
-        <CardContent>
+        <CardContent className="p-4">
           <p className="text-sm text-muted-foreground mb-4">
             This will permanently delete all your todos, schedules, and user data. This action cannot be undone.
           </p>

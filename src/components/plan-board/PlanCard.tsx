@@ -1,10 +1,12 @@
 
-import { Pin, Edit, Trash2, Calendar, Star, Target } from 'lucide-react';
+import { useMemo } from 'react';
+import { Pin, Edit, Trash2, Calendar, Star, Target, GripVertical } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { cn } from '@/lib/utils';
 import { PlanItem } from './PlanBoard';
+import Color from 'color';
 
 interface PlanCardProps {
   plan: PlanItem;
@@ -34,43 +36,62 @@ export function PlanCard({
     }
   };
 
-  const getTypeColor = () => {
-    switch (plan.type) {
-      case 'special-day':
-        return 'bg-gradient-accent/10 text-accent border-accent/20';
-      case 'goal':
-        return 'bg-gradient-success/10 text-success border-success/20';
-      default:
-        return 'bg-gradient-primary/10 text-primary border-primary/20';
+  // Function to calculate contrasting text color
+  const getContrastColor = (backgroundColor: string) => {
+    try {
+      const color = Color(backgroundColor);
+      return color.isDark() ? '#FFFFFF' : '#000000';
+    } catch {
+      return '#000000';
     }
   };
 
-  // Sticky note rotation for playful look
-  const rotation = plan.type === 'special-day' ? -2 : plan.type === 'goal' ? 2 : 0;
+  const cardStyle = useMemo(() => {
+    if (plan.image) {
+      return { main: '#FFFFFF', muted: '#FFFFFF', bg: 'transparent' };
+    }
+    if (plan.color) {
+      try {
+        const c = Color(plan.color);
+        return {
+          main: c.isDark() ? '#FFFFFF' : '#000000',
+          muted: c.isDark() ? 'rgba(255,255,255,0.7)' : 'rgba(0,0,0,0.7)',
+          bg: c.alpha(0.15).toString(),
+        };
+      } catch {
+        return { main: 'var(--card-foreground)', muted: 'var(--muted-foreground)', bg: 'var(--card)' };
+      }
+    }
+    return { main: 'var(--card-foreground)', muted: 'var(--muted-foreground)', bg: 'var(--card)' };
+  }, [plan.color, plan.image]);
 
-  // Utility to determine if a color is light or dark
-  function isColorDark(hex: string) {
-    if (!hex) return false;
-    const c = hex.substring(1); // strip #
-    const rgb = parseInt(c, 16);
-    const r = (rgb >> 16) & 0xff;
-    const g = (rgb >> 8) & 0xff;
-    const b = rgb & 0xff;
-    // Perceived brightness
-    return (r * 299 + g * 587 + b * 114) / 1000 < 128;
-  }
-  const textColor = isColorDark(plan.color) ? 'text-white' : 'text-gray-900';
-  const mutedColor = isColorDark(plan.color) ? 'text-gray-100/80' : 'text-gray-700/80';
+  // Sticky note rotation for playful look
+  const rotation = plan.id ? 
+    Math.max(-2, Math.min(2, (parseInt(plan.id.slice(-2), 16) % 5 - 2))) : // -2 to +2 degrees based on ID
+    0;
+    
+  // Get type-specific styles
+  const getTypeStyles = () => {
+    switch (plan.type) {
+      case 'special-day':
+        return 'bg-accent/10 text-accent border-accent/30';
+      case 'goal':
+        return 'bg-success/10 text-success border-success/30';
+      default:
+        return 'bg-primary/10 text-primary border-primary/30';
+    }
+  };
 
   return (
     <Card 
       className={cn(
-        "relative overflow-visible transition-all duration-300 group rounded-xl border-none shadow-xl",
-        plan.isPinned && "ring-2 ring-primary/50 shadow-glow",
+        "relative overflow-hidden transition-all duration-300 group rounded-lg shadow-md",
+        plan.isPinned && "shadow-lg",
         className
       )}
       style={{
         ...style,
+        backgroundColor: cardStyle.bg,
         transform: `rotate(${rotation}deg)`
       }}
       draggable
@@ -82,94 +103,66 @@ export function PlanCard({
         e.currentTarget.classList.remove('opacity-50');
       }}
     >
-      {/* Pin or tape effect */}
-      <div className="absolute left-1/2 -top-3 -translate-x-1/2 z-20">
-        <div className="w-8 h-4 bg-yellow-300 rounded-b-lg shadow-tape border border-yellow-400" />
-      </div>
-      {/* Background Pattern */}
-      <div 
-        className="absolute inset-0 opacity-80 rounded-xl"
-        style={{ backgroundColor: plan.color }}
-      />
+      {/* Pinned gradient border */}
+      {plan.isPinned && (
+        <div className="absolute inset-0 rounded-lg border-2 border-primary/80 animate-pulse-fast" />
+      )}
+
+      {/* Background Pattern or Image */}
+      {plan.image && (
+        <>
+          <img src={plan.image} alt={plan.title} className="absolute inset-0 w-full h-full object-cover rounded-lg opacity-80" />
+          <div className="absolute inset-0 bg-black/50 rounded-lg" />
+        </>
+      )}
       
-      <CardContent className="p-4 relative z-10">
-        <div className="flex items-start justify-between">
-          <div className="flex-1 space-y-2">
-            {/* Header */}
-            <div className="flex items-center gap-2">
-              <span className="text-2xl">{plan.emoji}</span>
-              <h3 className={cn("font-semibold group-hover:text-primary transition-colors", textColor)}>
-                {plan.title}
-              </h3>
-              {plan.isPinned && (
-                <Pin className="h-4 w-4 text-primary" />
-              )}
-            </div>
-            
-            {/* Description */}
-            {plan.description && (
-              <p className={cn("text-sm line-clamp-2", mutedColor)}>
-                {plan.description}
-              </p>
-            )}
-            
-            {/* Metadata */}
-            <div className="flex items-center gap-2 flex-wrap">
-              <Badge variant="outline" className={cn("text-xs", getTypeColor())}>
+      <CardContent className="p-3 relative z-10 flex flex-col h-full">
+        {/* Header */}
+        <div className="flex items-start justify-between mb-2">
+          <div className="flex items-center gap-2">
+            <div className="text-2xl">{plan.emoji}</div>
+            <div>
+              <h3 className="font-semibold leading-tight" style={{ color: cardStyle.main }}>{plan.title}</h3>
+              <div className="text-xs flex items-center gap-1" style={{ color: cardStyle.muted }}>
                 {getTypeIcon()}
-                <span className="ml-1 capitalize">{plan.type.replace('-', ' ')}</span>
-              </Badge>
-              
-              <Badge variant="outline" className="text-xs">
-                <Calendar className="h-3 w-3 mr-1" />
-                {new Date(plan.date).toLocaleDateString()}
-              </Badge>
+                <span className="capitalize">{plan.type.replace('-', ' ')}</span>
+              </div>
             </div>
           </div>
-          
-          {/* Actions */}
-          <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
-            <Button
-              size="sm"
-              variant="ghost"
-              onClick={onTogglePin}
-              className={cn(
-                "h-8 w-8 p-0",
-                plan.isPinned && "text-primary"
-              )}
-            >
-              <Pin className="h-4 w-4" />
-            </Button>
-            
-            <Button
-              size="sm"
-              variant="ghost"
-              onClick={onEdit}
-              className="h-8 w-8 p-0"
-            >
-              <Edit className="h-4 w-4" />
-            </Button>
-            
-            <Button
-              size="sm"
-              variant="ghost"
-              onClick={onDelete}
-              className="h-8 w-8 p-0 text-destructive hover:text-destructive"
-            >
-              <Trash2 className="h-4 w-4" />
-            </Button>
+          {/* Drag Handle */}
+          <div className="text-muted-foreground cursor-grab active:cursor-grabbing">
+            <GripVertical className="h-5 w-5" />
           </div>
         </div>
         
-        {/* Progress Indicator for Goals */}
-        {plan.type === 'goal' && (
-          <div className="mt-3 w-full bg-secondary rounded-full h-2">
-            <div 
-              className="h-2 rounded-full bg-gradient-success transition-all duration-500"
-              style={{ width: `${Math.random() * 100}%` }}
-            />
-          </div>
+        {/* Description */}
+        {plan.description && (
+          <p className="text-sm line-clamp-2 flex-grow" style={{ color: cardStyle.muted }}>
+            {plan.description}
+          </p>
         )}
+        
+        {/* Spacer to push footer down */}
+        <div className="flex-grow" />
+
+        {/* Footer with Metadata & Actions */}
+        <div className="mt-3 pt-2 border-t flex items-center justify-between" style={{ borderColor: Color(cardStyle.main).alpha(0.2).toString() }}>
+          <div className="flex items-center gap-2">
+            <Badge variant="outline" className="text-xs" style={{ borderColor: Color(cardStyle.main).alpha(0.2).toString(), color: cardStyle.muted }}>
+              <Calendar className="h-3 w-3 mr-1" />
+              {new Date(plan.date).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}
+            </Badge>
+            {plan.subject && (
+              <Badge variant="secondary" className="text-xs">{plan.subject}</Badge>
+            )}
+          </div>
+
+          <div className="flex items-center gap-0.5" style={{ color: cardStyle.muted }}>
+            <Button size="icon-xs" variant="ghost" onClick={onTogglePin} className={cn(plan.isPinned && "text-primary")}><Pin className="h-4 w-4" /></Button>
+            <Button size="icon-xs" variant="ghost" onClick={onEdit}><Edit className="h-4 w-4" /></Button>
+            <Button size="icon-xs" variant="ghost" onClick={onDelete} className="text-destructive/80 hover:text-destructive"><Trash2 className="h-4 w-4" /></Button>
+          </div>
+        </div>
       </CardContent>
     </Card>
   );

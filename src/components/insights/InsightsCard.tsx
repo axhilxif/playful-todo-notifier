@@ -55,41 +55,41 @@ export function InsightsCard() {
   }, []);
 
   return (
-    <Card className="bg-gradient-hero/10 border-primary/20 shadow-glow">
-      <CardHeader>
+    <Card variant="elevated">
+      <CardHeader className='p-4'>
         <CardTitle className="text-lg flex items-center gap-2 text-primary">
           <TrendingUp className="h-5 w-5" />
           Your Insights
         </CardTitle>
       </CardHeader>
-      <CardContent className="space-y-4">
+      <CardContent className="space-y-4 p-4">
         {/* Main stats: stack on mobile, grid on desktop */}
         <div className="flex flex-col gap-4 sm:grid sm:grid-cols-2">
-          <div className="flex items-center gap-4 p-4 bg-gradient-primary/5 rounded-xl border border-primary/10">
-            <Flame className="h-9 w-9 text-primary" />
+          <div className="flex items-center gap-4 p-4 bg-primary/10 rounded-2xl shadow-sm">
+            <Flame className="h-10 w-10 text-primary" />
             <div>
-              <div className="text-3xl font-bold text-primary">{insights.streak}</div>
+              <div className="text-4xl font-bold text-primary">{insights.streak}</div>
               <div className="text-sm text-muted-foreground">Day Streak</div>
             </div>
           </div>
-          <div className="flex items-center gap-4 p-4 bg-gradient-success/5 rounded-xl border border-success/10">
-            <Target className="h-9 w-9 text-success" />
+          <div className="flex items-center gap-4 p-4 bg-success/10 rounded-2xl shadow-sm">
+            <Target className="h-10 w-10 text-success" />
             <div>
-              <div className="text-3xl font-bold text-success">{insights.productivity}%</div>
+              <div className="text-4xl font-bold text-success">{insights.productivity}%</div>
               <div className="text-sm text-muted-foreground">Productivity</div>
             </div>
           </div>
         </div>
         {/* Details: stack vertically */}
         <div className="flex flex-col gap-3">
-          <div className="flex items-center justify-between p-4 bg-gradient-accent/5 rounded-xl border border-accent/10">
+          <div className="flex items-center justify-between p-4 bg-accent/10 rounded-2xl shadow-sm">
             <div className="flex items-center gap-2">
               <Calendar className="h-5 w-5 text-accent" />
               <span className="text-base font-medium">Best Day</span>
             </div>
             <span className="text-base font-bold text-accent">{insights.bestDay}</span>
           </div>
-          <div className="flex items-center justify-between p-4 bg-gradient-warning/5 rounded-xl border border-warning/10">
+          <div className="flex items-center justify-between p-4 bg-warning/10 rounded-2xl shadow-sm">
             <div className="flex items-center gap-2">
               <Clock className="h-5 w-5 text-warning" />
               <span className="text-base font-medium">Total Hours</span>

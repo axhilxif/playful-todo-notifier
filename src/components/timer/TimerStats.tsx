@@ -1,13 +1,15 @@
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { TrendingUp, Clock, Target, Zap, Trophy } from 'lucide-react';
+import { TrendingUp, Clock, Target, Zap, Trophy, Book } from 'lucide-react';
 import { useEffect, useState, useCallback } from 'react';
 import { cn } from '@/lib/utils';
+import { Progress } from '@/components/ui/progress';
 
 interface FocusSession {
   id: string;
   duration: number;
   date: string;
   endTime: Date;
+  subject?: string;
 }
 
 interface TimeDistribution {
@@ -39,6 +41,8 @@ export function TimerStats(): JSX.Element {
     afternoon: 0,
     evening: 0,
   });
+
+  const [focusTimeBySubject, setFocusTimeBySubject] = useState<{[key: string]: number}>({});
 
   const loadStats = useCallback(() => {
     const sessions: FocusSession[] = JSON.parse(localStorage.getItem('focusSessions') || '[]');
@@ -82,6 +86,14 @@ export function TimerStats(): JSX.Element {
         evening: Math.round((evening / total) * 100),
       });
     }
+
+    // Focus time by subject
+    const subjectTotals: {[key: string]: number} = {};
+    sessions.forEach(session => {
+      const subject = session.subject || 'General'; // Default to 'General' if no subject
+      subjectTotals[subject] = (subjectTotals[subject] || 0) + session.duration;
+    });
+    setFocusTimeBySubject(subjectTotals);
   }, []);
 
   const formatTime = (minutes: number): string => {
@@ -113,14 +125,14 @@ export function TimerStats(): JSX.Element {
 
   return (
     <div className="space-y-6">
-      <Card className="bg-gradient-card border-primary/20 shadow-soft">
-        <CardHeader>
+      <Card variant="elevated">
+        <CardHeader className='p-4'>
           <CardTitle className="text-lg flex items-center gap-2 text-primary">
             <TrendingUp className="h-5 w-5" />
             Focus Progress
           </CardTitle>
         </CardHeader>
-        <CardContent className="space-y-6">
+        <CardContent className="space-y-6 p-4">
           {/* Daily Progress */}
           <div>
             <div className="flex justify-between mb-2">
@@ -132,12 +144,7 @@ export function TimerStats(): JSX.Element {
                 {formatTime(stats.todayFocusTime)} / {formatTime(DAILY_TARGET_MINUTES)} target
               </span>
             </div>
-            <div className="h-2 bg-muted rounded-full overflow-hidden">
-              <div
-                className="h-full bg-gradient-to-r from-primary to-accent transition-all duration-500"
-                style={{ width: `${getDailyProgress()}%` }}
-              />
-            </div>
+            <Progress value={getDailyProgress()} className="h-3" />
           </div>
 
           {/* Weekly Progress */}
@@ -151,12 +158,7 @@ export function TimerStats(): JSX.Element {
                 {formatTime(stats.weekFocusTime)} / {formatTime(WEEKLY_TARGET_MINUTES)} target
               </span>
             </div>
-            <div className="h-2 bg-muted rounded-full overflow-hidden">
-              <div
-                className="h-full bg-gradient-to-r from-accent to-success transition-all duration-500"
-                style={{ width: `${getWeeklyProgress()}%` }}
-              />
-            </div>
+            <Progress value={getWeeklyProgress()} className="h-3" />
           </div>
 
           {/* Stats Grid */}
@@ -164,7 +166,7 @@ export function TimerStats(): JSX.Element {
             <Card>
               <CardContent className="p-4">
                 <div className="flex flex-col items-center">
-                  <div className="bg-gradient-to-br from-primary to-accent p-2 rounded-lg mb-2">
+                  <div className="bg-primary p-3 rounded-xl mb-2 shadow-md">
                     <Target className="h-5 w-5 text-white" />
                   </div>
                   <div className="text-2xl font-bold">{stats.totalSessions}</div>
@@ -176,7 +178,7 @@ export function TimerStats(): JSX.Element {
             <Card>
               <CardContent className="p-4">
                 <div className="flex flex-col items-center">
-                  <div className="bg-gradient-to-br from-accent to-success p-2 rounded-lg mb-2">
+                  <div className="bg-accent p-3 rounded-xl mb-2 shadow-md">
                     <Clock className="h-5 w-5 text-white" />
                   </div>
                   <div className="text-2xl font-bold">{formatTime(stats.averageSession)}</div>
@@ -190,13 +192,13 @@ export function TimerStats(): JSX.Element {
 
       {/* Weekly Distribution Card */}
       <Card>
-        <CardHeader>
+        <CardHeader className='p-4'>
           <CardTitle className="text-lg flex items-center gap-2">
             <Zap className="h-5 w-5 text-warning" />
             Focus Distribution
           </CardTitle>
         </CardHeader>
-        <CardContent>
+        <CardContent className="p-4">
           {stats.totalSessions === 0 ? (
             <div className="text-center py-8">
               <div className="text-4xl mb-2">📊</div>
@@ -207,12 +209,7 @@ export function TimerStats(): JSX.Element {
               <div className="flex items-center gap-4">
                 <div className="flex-1">
                   <div className="text-sm font-medium mb-1">Morning (6AM-12PM)</div>
-                  <div className="h-2 bg-muted rounded-full overflow-hidden">
-                    <div 
-                      className="h-full bg-gradient-primary" 
-                      style={{ width: `${timeDistribution.morning}%` }} 
-                    />
-                  </div>
+                  <Progress value={timeDistribution.morning} className="h-3" />
                 </div>
                 <span className="text-sm text-muted-foreground">{timeDistribution.morning}%</span>
               </div>
@@ -220,12 +217,7 @@ export function TimerStats(): JSX.Element {
               <div className="flex items-center gap-4">
                 <div className="flex-1">
                   <div className="text-sm font-medium mb-1">Afternoon (12PM-6PM)</div>
-                  <div className="h-2 bg-muted rounded-full overflow-hidden">
-                    <div 
-                      className="h-full bg-gradient-accent" 
-                      style={{ width: `${timeDistribution.afternoon}%` }} 
-                    />
-                  </div>
+                  <Progress value={timeDistribution.afternoon} className="h-3" />
                 </div>
                 <span className="text-sm text-muted-foreground">{timeDistribution.afternoon}%</span>
               </div>
@@ -233,15 +225,37 @@ export function TimerStats(): JSX.Element {
               <div className="flex items-center gap-4">
                 <div className="flex-1">
                   <div className="text-sm font-medium mb-1">Evening (6PM-12AM)</div>
-                  <div className="h-2 bg-muted rounded-full overflow-hidden">
-                    <div 
-                      className="h-full bg-gradient-warning" 
-                      style={{ width: `${timeDistribution.evening}%` }} 
-                    />
-                  </div>
+                  <Progress value={timeDistribution.evening} className="h-3" />
                 </div>
                 <span className="text-sm text-muted-foreground">{timeDistribution.evening}%</span>
               </div>
+            </div>
+          )}
+        </CardContent>
+      </Card>
+
+      {/* Focus Time by Subject */}
+      <Card>
+        <CardHeader className='p-4'>
+          <CardTitle className="text-lg flex items-center gap-2">
+            <Book className="h-5 w-5 text-info" />
+            Focus by Subject
+          </CardTitle>
+        </CardHeader>
+        <CardContent className="p-4">
+          {Object.keys(focusTimeBySubject).length === 0 ? (
+            <div className="text-center py-8">
+              <div className="text-4xl mb-2">📚</div>
+              <p className="text-muted-foreground">Complete focus sessions with subjects to see this breakdown</p>
+            </div>
+          ) : (
+            <div className="space-y-3">
+              {Object.entries(focusTimeBySubject).map(([subject, duration]) => (
+                <div key={subject} className="flex items-center justify-between p-3 bg-muted/20 rounded-lg">
+                  <span className="font-medium">{subject}</span>
+                  <span className="text-muted-foreground">{formatTime(Math.round(duration / 60))}</span>
+                </div>
+              ))}
             </div>
           )}
         </CardContent>

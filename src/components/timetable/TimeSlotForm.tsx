@@ -1,14 +1,15 @@
 import { useState, useEffect } from 'react';
-import { Clock, Bell, Palette } from 'lucide-react';
+import { Clock, Bell, Palette, Calendar, Check } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Switch } from '@/components/ui/switch';
 import { Checkbox } from '@/components/ui/checkbox';
+import { Card, CardContent } from '@/components/ui/card';
 import { TimeSlot } from '@/types';
 import { cn } from '@/lib/utils';
+import { ModalContainer } from '@/components/ui/modal-container';
 
 interface TimeSlotFormProps {
   open: boolean;
@@ -18,7 +19,7 @@ interface TimeSlotFormProps {
   title: string;
 }
 
-const dayOptions = [
+const DAY_OPTIONS = [
   { value: 0, label: 'Sunday' },
   { value: 1, label: 'Monday' },
   { value: 2, label: 'Tuesday' },
@@ -28,15 +29,15 @@ const dayOptions = [
   { value: 6, label: 'Saturday' },
 ];
 
-const colorOptions = [
-  '#8B5CF6', // Purple
-  '#06B6D4', // Cyan
-  '#10B981', // Emerald
-  '#F59E0B', // Amber
-  '#EF4444', // Red
-  '#EC4899', // Pink
-  '#6366F1', // Indigo
-  '#84CC16', // Lime
+const COLOR_OPTIONS = [
+  '#673AB7', // Deep Purple
+  '#00BCD4', // Cyan
+  '#4CAF50', // Green
+  '#FFC107', // Amber
+  '#F44336', // Red
+  '#E91E63', // Pink
+  '#3F51B5', // Indigo
+  '#8BC34A', // Light Green
 ];
 
 export function TimeSlotForm({ open, onOpenChange, onSubmit, initialData, title }: TimeSlotFormProps) {
@@ -45,7 +46,7 @@ export function TimeSlotForm({ open, onOpenChange, onSubmit, initialData, title 
     startTime: '09:00',
     endTime: '17:00',
     days: [] as number[],
-    color: colorOptions[0],
+    color: COLOR_OPTIONS[0],
     notifications: true,
     reminderBefore: 15,
   });
@@ -67,7 +68,7 @@ export function TimeSlotForm({ open, onOpenChange, onSubmit, initialData, title 
         startTime: '09:00',
         endTime: '17:00',
         days: [],
-        color: colorOptions[0],
+        color: COLOR_OPTIONS[0],
         notifications: true,
         reminderBefore: 15,
       });
@@ -86,7 +87,7 @@ export function TimeSlotForm({ open, onOpenChange, onSubmit, initialData, title 
       startTime: '09:00',
       endTime: '17:00',
       days: [],
-      color: colorOptions[0],
+      color: COLOR_OPTIONS[0],
       notifications: true,
       reminderBefore: 15,
     });
@@ -102,26 +103,38 @@ export function TimeSlotForm({ open, onOpenChange, onSubmit, initialData, title 
   };
 
   return (
-    <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-md max-h-[90vh] overflow-y-auto">
-        <DialogHeader>
-          <DialogTitle className="text-xl font-bold bg-gradient-accent bg-clip-text text-transparent">
-            {title}
-          </DialogTitle>
-        </DialogHeader>
+    <ModalContainer 
+      isOpen={open} 
+      onClose={() => onOpenChange(false)}
+      className="max-w-lg rounded-2xl"
+    >
+      <div className="p-0">
+        {/* Sticky header for mobile */}
+        <div className="sticky top-0 z-10 bg-gradient-to-b from-background/95 to-background/80 backdrop-blur-md flex items-center gap-3 px-4 py-4 border-b border-border rounded-t-2xl shadow-sm">
+          <span className="text-2xl md:text-xl">📅</span>
+          <h2 className="text-xl md:text-lg font-semibold flex-1 truncate">{title}</h2>
+          <Button
+            type="button"
+            variant="ghost"
+            size="icon"
+            className="md:hidden"
+            onClick={() => onOpenChange(false)}
+            aria-label="Close"
+          >
+            ✕
+          </Button>
+        </div>
         
-        <form onSubmit={handleSubmit} className="space-y-6">
+        <form onSubmit={handleSubmit} className="space-y-6 px-4 py-5 md:px-6">
           {/* Title */}
           <div className="space-y-2">
-            <Label htmlFor="title" className="text-sm font-medium">
-              Activity Title *
-            </Label>
+            <Label htmlFor="title">Activity Title *</Label>
             <Input
               id="title"
               placeholder="e.g., Work, Study, Exercise"
               value={formData.title}
               onChange={(e) => setFormData(prev => ({ ...prev, title: e.target.value }))}
-              className="transition-all duration-200 focus:shadow-soft"
+              className="shadow-sm"
               required
             />
           </div>
@@ -129,8 +142,8 @@ export function TimeSlotForm({ open, onOpenChange, onSubmit, initialData, title 
           {/* Time Range */}
           <div className="grid grid-cols-2 gap-4">
             <div className="space-y-2">
-              <Label htmlFor="startTime" className="text-sm font-medium flex items-center gap-1">
-                <Clock className="h-3 w-3" />
+              <Label htmlFor="startTime" className="flex items-center gap-1">
+                <Clock className="h-4 w-4" />
                 Start Time *
               </Label>
               <Input
@@ -138,13 +151,13 @@ export function TimeSlotForm({ open, onOpenChange, onSubmit, initialData, title 
                 type="time"
                 value={formData.startTime}
                 onChange={(e) => setFormData(prev => ({ ...prev, startTime: e.target.value }))}
-                className="transition-all duration-200 focus:shadow-soft"
+                className="shadow-sm"
                 required
               />
             </div>
             <div className="space-y-2">
-              <Label htmlFor="endTime" className="text-sm font-medium flex items-center gap-1">
-                <Clock className="h-3 w-3" />
+              <Label htmlFor="endTime" className="flex items-center gap-1">
+                <Clock className="h-4 w-4" />
                 End Time *
               </Label>
               <Input
@@ -152,7 +165,7 @@ export function TimeSlotForm({ open, onOpenChange, onSubmit, initialData, title 
                 type="time"
                 value={formData.endTime}
                 onChange={(e) => setFormData(prev => ({ ...prev, endTime: e.target.value }))}
-                className="transition-all duration-200 focus:shadow-soft"
+                className="shadow-sm"
                 required
               />
             </div>
@@ -160,11 +173,11 @@ export function TimeSlotForm({ open, onOpenChange, onSubmit, initialData, title 
 
           {/* Days of Week */}
           <div className="space-y-3">
-            <Label className="text-sm font-medium">
+            <Label>
               Days of Week * (Select at least one)
             </Label>
             <div className="grid grid-cols-2 gap-2">
-              {dayOptions.map(day => (
+              {DAY_OPTIONS.map(day => (
                 <div key={day.value} className="flex items-center space-x-2">
                   <Checkbox
                     id={`day-${day.value}`}
@@ -173,7 +186,7 @@ export function TimeSlotForm({ open, onOpenChange, onSubmit, initialData, title 
                   />
                   <Label 
                     htmlFor={`day-${day.value}`} 
-                    className="text-sm font-normal cursor-pointer"
+                    className="cursor-pointer"
                   >
                     {day.label}
                   </Label>
@@ -184,25 +197,35 @@ export function TimeSlotForm({ open, onOpenChange, onSubmit, initialData, title 
 
           {/* Color Selection */}
           <div className="space-y-3">
-            <Label className="text-sm font-medium flex items-center gap-1">
-              <Palette className="h-3 w-3" />
+            <Label className="flex items-center gap-1">
+              <Palette className="h-4 w-4" />
               Color Theme
             </Label>
             <div className="flex flex-wrap gap-2">
-              {colorOptions.map(color => (
-                <button
+              {COLOR_OPTIONS.map(color => (
+                <Card
                   key={color}
-                  type="button"
                   onClick={() => setFormData(prev => ({ ...prev, color }))}
                   className={cn(
-                    "w-8 h-8 rounded-full border-2 transition-all duration-200 hover:scale-110",
+                    "w-10 h-10 rounded-lg border-2 transition-all duration-200 hover:scale-110 shadow-sm cursor-pointer flex items-center justify-center",
                     formData.color === color 
-                      ? "border-foreground shadow-lg" 
-                      : "border-border hover:border-foreground/50"
+                      ? "border-primary shadow-md" 
+                      : "border-border hover:border-primary/50"
                   )}
                   style={{ backgroundColor: color }}
-                />
+                >
+                  {formData.color === color && <Check className="h-5 w-5 text-white" />}
+                </Card>
               ))}
+              {/* Any color input */}
+              <input
+                type="color"
+                value={formData.color}
+                onChange={e => setFormData({ ...formData, color: e.target.value })}
+                className="h-10 w-10 min-w-[2.5rem] min-h-[2.5rem] p-0 rounded-lg border-2 flex-shrink-0 cursor-pointer shadow-sm"
+                style={{ background: 'none', border: '2px solid #ccc' }}
+                title="Pick any color"
+              />
             </div>
           </div>
 
@@ -210,10 +233,8 @@ export function TimeSlotForm({ open, onOpenChange, onSubmit, initialData, title 
           <div className="space-y-4">
             <div className="flex items-center justify-between">
               <div className="flex items-center space-x-2">
-                <Bell className="h-4 w-4 text-primary" />
-                <Label htmlFor="notifications" className="text-sm font-medium">
-                  Enable Notifications
-                </Label>
+                <Bell className="h-5 w-5 text-primary" />
+                <Label htmlFor="notifications">Enable Notifications</Label>
               </div>
               <Switch
                 id="notifications"
@@ -224,7 +245,7 @@ export function TimeSlotForm({ open, onOpenChange, onSubmit, initialData, title 
 
             {formData.notifications && (
               <div className="space-y-2">
-                <Label className="text-sm font-medium">
+                <Label>
                   Remind me before (minutes)
                 </Label>
                 <Select 
@@ -247,7 +268,7 @@ export function TimeSlotForm({ open, onOpenChange, onSubmit, initialData, title 
           </div>
 
           {/* Actions */}
-          <div className="flex gap-3 pt-4">
+          <div className="sticky bottom-0 left-0 right-0 bg-background/80 backdrop-blur supports-[backdrop-filter]:bg-background/60 pt-4 px-0 pb-4 flex gap-3">
             <Button
               type="button"
               variant="outline"
@@ -258,14 +279,15 @@ export function TimeSlotForm({ open, onOpenChange, onSubmit, initialData, title 
             </Button>
             <Button
               type="submit"
-              className="flex-1 bg-gradient-accent hover:bg-gradient-accent/90 shadow-playful"
+              variant="default"
+              className="flex-1"
               disabled={!formData.title.trim() || formData.days.length === 0}
             >
               {initialData ? 'Update Schedule' : 'Add Schedule'}
             </Button>
           </div>
         </form>
-      </DialogContent>
-    </Dialog>
+      </div>
+    </ModalContainer>
   );
 }

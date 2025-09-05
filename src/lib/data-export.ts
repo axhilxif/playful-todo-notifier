@@ -3,13 +3,13 @@ export interface ExportData {
   exportDate: string;
   user: {
     profile: any;
-    achievements: any[];
     settings: any;
   };
   todos: any[];
   focusSessions: any[];
   planBoard: any[];
   timetable: any[];
+  subjects: string[]; // Added subjects
 }
 
 export function exportUserData(): string {
@@ -18,13 +18,13 @@ export function exportUserData(): string {
     exportDate: new Date().toISOString(),
     user: {
       profile: JSON.parse(localStorage.getItem('userProfile') || '{}'),
-      achievements: JSON.parse(localStorage.getItem('userAchievements') || '[]'),
       settings: JSON.parse(localStorage.getItem('todo-app-settings') || '{}'),
     },
     todos: JSON.parse(localStorage.getItem('todo-app-todos') || '[]'),
     focusSessions: JSON.parse(localStorage.getItem('focusSessions') || '[]'),
     planBoard: JSON.parse(localStorage.getItem('planBoard') || '[]'),
     timetable: JSON.parse(localStorage.getItem('todo-app-timetable') || '[]'),
+    subjects: JSON.parse(localStorage.getItem('subjects') || '[]'), // Export subjects
   };
 
   return JSON.stringify(data, null, 2);
@@ -65,10 +65,10 @@ export function importUserData(jsonData: string): { success: boolean; message: s
 
     // Import data
     if (data.user.profile) {
-      localStorage.setItem('userProfile', JSON.stringify(data.user.profile));
-    }
-    if (data.user.achievements) {
-      localStorage.setItem('userAchievements', JSON.stringify(data.user.achievements));
+      // Merge with existing profile to be safe
+      const existingProfile = JSON.parse(localStorage.getItem('userProfile') || '{}');
+      const newProfile = { ...existingProfile, ...data.user.profile };
+      localStorage.setItem('userProfile', JSON.stringify(newProfile));
     }
     if (data.user.settings) {
       localStorage.setItem('todo-app-settings', JSON.stringify(data.user.settings));
@@ -84,6 +84,9 @@ export function importUserData(jsonData: string): { success: boolean; message: s
     }
     if (data.timetable) {
       localStorage.setItem('todo-app-timetable', JSON.stringify(data.timetable));
+    }
+    if (data.subjects) {
+      localStorage.setItem('subjects', JSON.stringify(data.subjects));
     }
 
     return { success: true, message: 'Data imported successfully! Please refresh the page.' };

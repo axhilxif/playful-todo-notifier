@@ -1,79 +1,85 @@
-import * as React from "react"
+import * as React from 'react';
+import Card from '@mui/material/Card';
+import CardContent from '@mui/material/CardContent';
+import CardActions from '@mui/material/CardActions';
 
-import { cn } from "@/lib/utils"
+interface CardProps extends React.ComponentProps<typeof Card> {
+  variant?: 'elevated' | 'outlined';
+}
 
-const Card = React.forwardRef<
-  HTMLDivElement,
-  React.HTMLAttributes<HTMLDivElement>
->(({ className, ...props }, ref) => (
-  <div
-    ref={ref}
-    className={cn(
-      "rounded-lg border bg-card text-card-foreground shadow-sm",
-      className
-    )}
-    {...props}
-  />
-))
-Card.displayName = "Card"
+const M3Card = React.forwardRef<HTMLDivElement, CardProps>(
+  ({ className, variant, children, ...props }, ref) => {
+    return (
+      <Card
+        ref={ref}
+        variant={variant === 'outlined' ? 'outlined' : 'elevation'} // Map to MUI variants
+        className={className}
+        {...props}
+      >
+        {children}
+      </Card>
+    );
+  }
+);
 
-const CardHeader = React.forwardRef<
-  HTMLDivElement,
-  React.HTMLAttributes<HTMLDivElement>
->(({ className, ...props }, ref) => (
-  <div
-    ref={ref}
-    className={cn("flex flex-col space-y-1.5 p-6", className)}
-    {...props}
-  />
-))
-CardHeader.displayName = "CardHeader"
+M3Card.displayName = 'M3Card';
 
-const CardTitle = React.forwardRef<
-  HTMLParagraphElement,
-  React.HTMLAttributes<HTMLHeadingElement>
->(({ className, ...props }, ref) => (
-  <h3
-    ref={ref}
-    className={cn(
-      "text-2xl font-semibold leading-none tracking-tight",
-      className
-    )}
-    {...props}
-  />
-))
-CardTitle.displayName = "CardTitle"
+interface CardHeaderProps extends React.HTMLAttributes<HTMLDivElement> {}
 
-const CardDescription = React.forwardRef<
-  HTMLParagraphElement,
-  React.HTMLAttributes<HTMLParagraphElement>
->(({ className, ...props }, ref) => (
-  <p
-    ref={ref}
-    className={cn("text-sm text-muted-foreground", className)}
-    {...props}
-  />
-))
-CardDescription.displayName = "CardDescription"
+const M3CardHeader = React.forwardRef<HTMLDivElement, CardHeaderProps>(
+  ({ className, children, ...props }, ref) => (
+    <div className={className} {...props}>
+      {children}
+    </div>
+  )
+);
+M3CardHeader.displayName = 'M3CardHeader';
 
-const CardContent = React.forwardRef<
-  HTMLDivElement,
-  React.HTMLAttributes<HTMLDivElement>
->(({ className, ...props }, ref) => (
-  <div ref={ref} className={cn("p-6 pt-0", className)} {...props} />
-))
-CardContent.displayName = "CardContent"
+interface CardTitleProps extends React.HTMLAttributes<HTMLDivElement> {}
 
-const CardFooter = React.forwardRef<
-  HTMLDivElement,
-  React.HTMLAttributes<HTMLDivElement>
->(({ className, ...props }, ref) => (
-  <div
-    ref={ref}
-    className={cn("flex items-center p-6 pt-0", className)}
-    {...props}
-  />
-))
-CardFooter.displayName = "CardFooter"
+const M3CardTitle = React.forwardRef<HTMLDivElement, CardTitleProps>(
+  ({ className, children, ...props }, ref) => (
+    <div ref={ref} className={className} {...props}>
+      {children}
+    </div>
+  )
+);
+M3CardTitle.displayName = 'M3CardTitle';
 
-export { Card, CardHeader, CardFooter, CardTitle, CardDescription, CardContent }
+interface CardDescriptionProps extends React.HTMLAttributes<HTMLParagraphElement> {}
+
+const M3CardDescription = React.forwardRef<HTMLParagraphElement, CardDescriptionProps>(
+  ({ className, children, ...props }, ref) => (
+    <p ref={ref} className={className} {...props}>
+      {children}
+    </p>
+  )
+);
+M3CardDescription.displayName = 'M3CardDescription';
+
+interface CardContentProps extends React.ComponentProps<typeof CardContent> {}
+
+const M3CardContent = React.forwardRef<HTMLDivElement, CardContentProps>(
+  ({ className, ...props }, ref) => (
+    <CardContent ref={ref} className={className} {...props} />
+  )
+);
+M3CardContent.displayName = 'M3CardContent';
+
+interface CardFooterProps extends React.ComponentProps<typeof CardActions> {}
+
+const M3CardFooter = React.forwardRef<HTMLDivElement, CardFooterProps>(
+  ({ className, ...props }, ref) => (
+    <CardActions ref={ref} className={className} {...props} />
+  )
+);
+M3CardFooter.displayName = 'M3CardFooter';
+
+export {
+  M3Card as Card,
+  M3CardHeader as CardHeader,
+  M3CardFooter as CardFooter,
+  M3CardTitle as CardTitle,
+  M3CardDescription as CardDescription,
+  M3CardContent as CardContent,
+};

@@ -9,10 +9,13 @@ export interface Todo {
   title: string;
   description?: string;
   completed: boolean;
+  completedAt?: Date;
   priority: 'low' | 'medium' | 'high';
   dueDate?: Date;
   createdAt: Date;
   notificationTime?: Date;
+  subject?: string;
+  tags?: string[];
 }
 
 export interface TimeSlot {
@@ -33,6 +36,24 @@ export interface TimerSession {
   duration: number; // in seconds
   isActive: boolean;
   pausedTime?: number;
+  subject?: string;
+  breaks: number;
+  focusScore: number;
+}
+
+// Re-export UserStats from achievements.ts to ensure consistency
+export type { UserStats } from '@/lib/achievements';
+
+export interface TimerSession {
+  id: string;
+  startTime: Date;
+  endTime?: Date;
+  duration: number; // in seconds
+  isActive: boolean;
+  pausedTime?: number;
+  subject?: string;
+  breaks: number;
+  focusScore: number;
 }
 
 export interface NotificationSettings {

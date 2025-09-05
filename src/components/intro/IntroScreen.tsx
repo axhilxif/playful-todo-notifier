@@ -92,7 +92,7 @@ export function IntroScreen({ onComplete }: IntroScreenProps) {
   };
 
   return (
-    <div className="fixed inset-0 bg-gradient-to-br from-primary/20 via-accent/20 to-background flex items-center justify-center p-4 z-50">
+    <div className="fixed inset-0 bg-background flex items-center justify-center p-4 z-50">
       <motion.div
         initial={{ y: 20, opacity: 0 }}
         animate={{ y: 0, opacity: 1 }}
@@ -106,10 +106,10 @@ export function IntroScreen({ onComplete }: IntroScreenProps) {
           animate={{ scale: 1, opacity: 1 }}
           transition={{ delay: 0.2, duration: 0.5 }}
         >
-          <div className="absolute inset-0 bg-gradient-to-r from-primary/20 to-accent/20 blur-3xl transform -rotate-6" />
+          <div className="absolute inset-0 bg-primary/10 blur-3xl transform -rotate-6" />
           <div className="relative">
             <motion.div 
-              className="inline-flex items-center justify-center w-24 h-24 bg-gradient-to-br from-primary to-accent rounded-xl mb-4 shadow-xl"
+              className="inline-flex items-center justify-center w-24 h-24 bg-primary rounded-2xl mb-4 shadow-lg"
               animate={{ 
                 y: [0, -8, 0],
                 scale: [1, 1.05, 1]
@@ -124,7 +124,7 @@ export function IntroScreen({ onComplete }: IntroScreenProps) {
               <Sparkles className="h-12 w-12 text-white animate-pulse" />
             </motion.div>
             <motion.h1 
-              className="text-5xl font-display font-bold mb-3 bg-clip-text text-transparent bg-gradient-to-r from-primary to-accent"
+              className="text-5xl font-display font-bold mb-3 text-primary"
               initial={{ y: 20, opacity: 0 }}
               animate={{ y: 0, opacity: 1 }}
               transition={{ delay: 0.4, duration: 0.5 }}
@@ -147,7 +147,7 @@ export function IntroScreen({ onComplete }: IntroScreenProps) {
           animate={{ opacity: 1, y: 0 }}
           transition={{ delay: 0.8 }}
         >
-          <Card className="bg-card/80 backdrop-blur-sm border-border/50 mb-6 shadow-xl">
+          <Card variant="elevated" className="mb-6">
             <CardContent className="p-6">
               <AnimatePresence mode="wait">
                 <motion.div
@@ -157,12 +157,12 @@ export function IntroScreen({ onComplete }: IntroScreenProps) {
                   exit={{ x: -20, opacity: 0 }}
                   transition={{ duration: 0.3 }}
                 >
-                  <div className={`w-16 h-16 rounded-xl ${introSteps[currentStep]?.gradient} flex items-center justify-center mb-4 shadow-lg transform hover:scale-105 transition-transform`}>
+                  <div className={`w-16 h-16 rounded-2xl ${introSteps[currentStep]?.gradient} flex items-center justify-center mb-4 shadow-lg transform hover:scale-105 transition-transform`}>
                     {introSteps[currentStep]?.icon && 
                       React.createElement(introSteps[currentStep].icon, { className: "h-8 w-8 text-white" })
                     }
                   </div>
-                  <h3 className="text-xl font-display font-semibold mb-2 bg-gradient-to-r from-primary to-accent bg-clip-text text-transparent">
+                  <h3 className="text-xl font-display font-semibold mb-2 text-primary">
                     {introSteps[currentStep]?.title}
                   </h3>
                   <p className="text-muted-foreground leading-relaxed">
@@ -179,7 +179,7 @@ export function IntroScreen({ onComplete }: IntroScreenProps) {
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
           >
-            <Progress value={(currentStep + 1) / introSteps.length * 100} className="h-2" />
+            <Progress value={(currentStep + 1) / introSteps.length * 100} className="h-3" />
             <div className="flex justify-between text-sm text-muted-foreground">
               <span>Step {currentStep + 1} of {introSteps.length}</span>
               <span>{Math.round((currentStep + 1) / introSteps.length * 100)}% Complete</span>
@@ -196,7 +196,7 @@ export function IntroScreen({ onComplete }: IntroScreenProps) {
             <Button
               variant="outline"
               onClick={handleSkip}
-              className="flex-1 hover:bg-accent/10"
+              className="flex-1 hover:bg-accent/20"
             >
               Skip for now
             </Button>
